@@ -1,0 +1,55 @@
+{
+	"name": "Json",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "aoaiworkshopblob",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"container": {
+				"type": "string",
+				"defaultValue": "workshop-data"
+			},
+			"directory": {
+				"type": "string",
+				"defaultValue": "generated_documents"
+			}
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"folderPath": {
+					"value": "@dataset().directory",
+					"type": "Expression"
+				},
+				"container": {
+					"value": "@dataset().container",
+					"type": "Expression"
+				}
+			}
+		},
+		"schema": {
+			"type": "object",
+			"properties": {
+				"summary": {
+					"type": "string"
+				},
+				"customerSentiment": {
+					"type": "string"
+				},
+				"topic": {
+					"type": "string"
+				},
+				"product": {
+					"type": "string"
+				},
+				"filename": {
+					"type": "string"
+				}
+			}
+		}
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

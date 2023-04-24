@@ -1,0 +1,50 @@
+{
+	"name": "Simulator",
+	"properties": {
+		"activities": [
+			{
+				"name": "generate conversation TXT",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Conversation Generation",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"AOAI_MODEL_NAME": "text-davinci-001-demo-eus",
+						"FILE_AMOUNT": 50
+					}
+				}
+			},
+			{
+				"name": "process and housekeeping",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "generate conversation TXT",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Batch Processing",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"AoaiModelName": "text-davinci-001-demo-eus"
+					}
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2023-04-21T21:39:24Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

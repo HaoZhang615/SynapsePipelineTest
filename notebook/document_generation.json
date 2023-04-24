@@ -1,0 +1,317 @@
+{
+	"name": "document_generation",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "SparkPoolS",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "d7d26df2-2acf-42ba-89f7-341d3bc0ade6"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"synapse_widget": {
+				"version": "0.1"
+			},
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/317ae932-c9d6-433d-9c3e-998b5943f458/resourceGroups/openai_batch_pipeline_demo/providers/Microsoft.Synapse/workspaces/azureopenaiworkshop-synapse/bigDataPools/SparkPoolS",
+				"name": "SparkPoolS",
+				"type": "Spark",
+				"endpoint": "https://azureopenaiworkshop-synapse.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/SparkPoolS",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
+				},
+				"sparkVersion": "3.3",
+				"nodeCount": 10,
+				"cores": 8,
+				"memory": 56,
+				"extraHeader": null
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#Import modules and enable access from Spark Pool to Blob Storage\r\n",
+					"import openai\r\n",
+					"import random\r\n",
+					"import time\r\n",
+					"from pyspark.sql import SparkSession"
+				],
+				"execution_count": 11
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"tags": [
+						"parameters"
+					]
+				},
+				"source": [
+					"# Parameters to be referenced by synapse pipeline\r\n",
+					"AOAI_API_BASE = 'https://aoai-hz.openai.azure.com/'\r\n",
+					"AOAI_API_KEY = 'c48fe2c2d53a40b18167704bc7654d93'\r\n",
+					"AOAI_MODEL_NAME = 'davinci2'\r\n",
+					"#FILENAME = '1_331_243_disappointed_upgrade services_streaming_document.txt'\r\n",
+					"BLOB_ACCOUNT_NAME = \"hva77eiv36iwuazfunctions\"\r\n",
+					"BLOB_CONTAINER_NAME = \"workshop-data\"\r\n",
+					"FILE_AMOUNT = 2"
+				],
+				"execution_count": 12
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Azure OpenAI API parameter setting - static for now, can be parameterized as well, if it make sense to do so.\r\n",
+					"temperature= 0.6\r\n",
+					"max_tokens= 1500\r\n",
+					"top_p= 0.80\r\n",
+					"frequency_penalty= 0.3\r\n",
+					"presence_penalty= 0.2\r\n",
+					"stop= None"
+				],
+				"execution_count": 13
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Set the stage for AOAI api call - referencing the parameters\r\n",
+					"openai.api_type = \"azure\" # static for AOAI\r\n",
+					"openai.api_base = AOAI_API_BASE\r\n",
+					"openai.api_version = \"2022-12-01\" # not static but change very infrequently\r\n",
+					"openai.api_key = AOAI_API_KEY\r\n",
+					"blob_account_name = BLOB_ACCOUNT_NAME\r\n",
+					"blob_container_name = BLOB_CONTAINER_NAME"
+				],
+				"execution_count": 14
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# initialize a Spark Session\r\n",
+					"sc = SparkSession.builder.getOrCreate()\r\n",
+					"token_library = sc._jvm.com.microsoft.azure.synapse.tokenlibrary.TokenLibrary\r\n",
+					"blob_sas_token = token_library.getConnectionString(\"aoaiworkshopblob\")\r\n",
+					"\r\n",
+					"spark.conf.set(\r\n",
+					"    'fs.azure.sas.%s.%s.blob.core.windows.net' % (blob_container_name, blob_account_name),\r\n",
+					"    blob_sas_token)"
+				],
+				"execution_count": 15
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# function: generate random combination of sentiment, topic and product for AOAI to synthesize converstation content.\r\n",
+					"def randomized_prompt_elements(sentiments_list, topics_list, products_list):\r\n",
+					"    # Randomly draw an element from the supplied lists for the sentiment, topic, and product \r\n",
+					"    random_sentiment = random.choice(sentiments_list)\r\n",
+					"    random_topic = random.choice(topics_list)\r\n",
+					"    random_product = random.choice(products_list)\r\n",
+					"    \r\n",
+					"    # Return the randomized element string \r\n",
+					"    return random_sentiment, random_topic, random_product"
+				],
+				"execution_count": 16
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# function: call AOAI API \r\n",
+					"def create_document(doc_generation_engine, document_creation_prompt, temperature=0.7, max_tokens=2000, top_p=1, frequency_penalty=0, presence_penalty=0, stop=None):\r\n",
+					"    # Submit the answer from the QA Bot to the AOAI model for summariation\r\n",
+					"    openai_output = openai.Completion.create(\r\n",
+					"      engine= doc_generation_engine,\r\n",
+					"      prompt= document_creation_prompt, \r\n",
+					"      temperature= temperature,\r\n",
+					"      max_tokens= max_tokens,\r\n",
+					"      top_p= top_p,\r\n",
+					"      frequency_penalty= frequency_penalty,\r\n",
+					"      presence_penalty= presence_penalty,\r\n",
+					"      stop= None)\r\n",
+					"    \r\n",
+					"    generated_document = openai_output.choices[0].text\r\n",
+					"\r\n",
+					"    return openai_output,generated_document"
+				],
+				"execution_count": 17
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# function: create dynamic document name based on the randomized combination of sentiment, topic and product. \r\n",
+					"def create_document_name(i, random_sentiment, random_topic, random_product, total_tokens, completion_tokens):\r\n",
+					"    # Create a name for the document based on the randomly selected sentiment, topic, and product\r\n",
+					"    document_name = f'{i}_{total_tokens}_{completion_tokens}_{random_sentiment}_{random_topic}_{random_product}_document.txt'\r\n",
+					"    return document_name"
+				],
+				"execution_count": 18
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# declare the 3 lists with allowed values\r\n",
+					"sentiments_list = ['positive', 'negative', 'neutral', 'mixed', 'content', 'upset', 'angry', 'frustrated', 'happy', 'disappointed', 'confused']\r\n",
+					"topics_list = ['churn', 'upgrade services', 'downgrade services', 'assistance', 'support', 'information', 'billing', 'payment', 'account', 'service', 'other']\r\n",
+					"products_list = ['phone', 'internet', 'tv', 'streaming', 'other']"
+				],
+				"execution_count": 19
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"for i in range(FILE_AMOUNT):# the range number decides how many files/synthetic conversations should be generated in a randomized manner. \r\n",
+					"        # parameterized prompt generation\r\n",
+					"        random_sentiment, random_topic, random_product = randomized_prompt_elements(sentiments_list, topics_list, products_list)\r\n",
+					"        document_creation_prompt = f'CREATE a document representing an exchange between a customer service \\\r\n",
+					"    agent for the fictitious company Contoso Wireless and their customer. The sentiment of the customer must be {random_sentiment} and \\\r\n",
+					"    the topic of the conversation betweem the agent and customer should center around {random_topic}. The customer must be asking about the product {random_product}. The document should have at least \\\r\n",
+					"    8 back and forth exchanges between the customer and the agent and the length MUST NOT EXCEED 1000 words.'\r\n",
+					"\r\n",
+					"        openai_output, generated_document = create_document(AOAI_MODEL_NAME, document_creation_prompt, temperature, max_tokens, top_p,\\\r\n",
+					"                                                            frequency_penalty, presence_penalty, stop)\r\n",
+					"\r\n",
+					"        total_tokens, completion_tokens = openai_output.usage.total_tokens, openai_output.usage.completion_tokens\r\n",
+					"        document_name = create_document_name(i, random_sentiment, random_topic, random_product, total_tokens, completion_tokens)\r\n",
+					"\r\n",
+					"        # leverage MSFT Spark utility to write each generated converstation in txt file to Blob Storage Container\r\n",
+					"        mssparkutils.fs.put(f'wasbs://{BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/generated_documents/'+document_name, generated_document, True)\r\n",
+					"        time.sleep(.50)"
+				],
+				"execution_count": 20
+			}
+		]
+	}
+}

@@ -1,0 +1,308 @@
+{
+	"name": "Batch Processing",
+	"properties": {
+		"activities": [
+			{
+				"name": "Load JSON to SQL",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [
+					{
+						"activity": "TXT 2 AOAI 2 JSON",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "Dataflow1",
+						"type": "DataFlowReference",
+						"datasetParameters": {
+							"source1": {
+								"container": {
+									"value": "@pipeline().parameters.SourceContainerName",
+									"type": "Expression"
+								},
+								"directory": {
+									"value": "@pipeline().parameters.JsonFolderName",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					"staging": {
+						"linkedService": {
+							"referenceName": "aoaiworkshopblob",
+							"type": "LinkedServiceReference"
+						},
+						"folderPath": "workshop-data/staging"
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			},
+			{
+				"name": "Get AOAI API Base",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": true,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": "https://openai-batch-kv.vault.azure.net/secrets/AOAI-API-BASE?api-version=7.0",
+					"connectVia": {
+						"referenceName": "AutoResolveIntegrationRuntime",
+						"type": "IntegrationRuntimeReference"
+					},
+					"method": "GET",
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			},
+			{
+				"name": "Get AOAI API Key",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": true,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": "https://openai-batch-kv.vault.azure.net/secrets/AOAI-API-KEY?api-version=7.0",
+					"connectVia": {
+						"referenceName": "AutoResolveIntegrationRuntime",
+						"type": "IntegrationRuntimeReference"
+					},
+					"method": "GET",
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			},
+			{
+				"name": "Delete all TXT from source container",
+				"type": "Delete",
+				"dependsOn": [
+					{
+						"activity": "Load JSON to SQL",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "Folder",
+						"type": "DatasetReference",
+						"parameters": {
+							"container": {
+								"value": "@pipeline().parameters.SourceContainerName",
+								"type": "Expression"
+							},
+							"directory": {
+								"value": "@pipeline().parameters.TxtFolderName",
+								"type": "Expression"
+							}
+						}
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobStorageReadSettings",
+						"recursive": true,
+						"wildcardFileName": "*",
+						"enablePartitionDiscovery": false
+					}
+				}
+			},
+			{
+				"name": "Delete all JSON from source container_copy1",
+				"type": "Delete",
+				"dependsOn": [
+					{
+						"activity": "Load JSON to SQL",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "Folder",
+						"type": "DatasetReference",
+						"parameters": {
+							"container": {
+								"value": "@pipeline().parameters.SourceContainerName",
+								"type": "Expression"
+							},
+							"directory": {
+								"value": "@pipeline().parameters.JsonFolderName",
+								"type": "Expression"
+							}
+						}
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobStorageReadSettings",
+						"recursive": true,
+						"wildcardFileName": "*",
+						"enablePartitionDiscovery": false
+					}
+				}
+			},
+			{
+				"name": "TXT 2 AOAI 2 JSON",
+				"type": "SynapseNotebook",
+				"dependsOn": [
+					{
+						"activity": "Get AOAI API Base",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Get AOAI API Key",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebook": {
+						"referenceName": "cleansed_generation",
+						"type": "NotebookReference"
+					},
+					"parameters": {
+						"AOAI_API_BASE": {
+							"value": {
+								"value": "@activity('Get AOAI API Base').output.value",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"AOAI_API_KEY": {
+							"value": {
+								"value": "@activity('Get AOAI API Key').output.value",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"AOAI_MODEL_NAME": {
+							"value": {
+								"value": "@pipeline().parameters.AoaiModelName",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BLOB_ACCOUNT_NAME": {
+							"value": {
+								"value": "@pipeline().parameters.StorageAccountName",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"SOURCE_BLOB_CONTAINER_NAME": {
+							"value": {
+								"value": "@pipeline().parameters.SourceContainerName",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"ARCHIEVE_BLOB_CONTAINER_NAME": {
+							"value": {
+								"value": "@pipeline().parameters.ArchiveContainerName",
+								"type": "Expression"
+							},
+							"type": "string"
+						}
+					},
+					"snapshot": true,
+					"sparkPool": {
+						"referenceName": "SparkPoolS",
+						"type": "BigDataPoolReference"
+					},
+					"executorSize": "Medium",
+					"conf": {
+						"spark.dynamicAllocation.enabled": false
+					},
+					"driverSize": "Medium"
+				}
+			}
+		],
+		"parameters": {
+			"StorageAccountName": {
+				"type": "string",
+				"defaultValue": "hva77eiv36iwuazfunctions"
+			},
+			"SourceContainerName": {
+				"type": "string",
+				"defaultValue": "workshop-data"
+			},
+			"ArchiveContainerName": {
+				"type": "string",
+				"defaultValue": "archieve-data"
+			},
+			"TxtFolderName": {
+				"type": "string",
+				"defaultValue": "generated_documents"
+			},
+			"JsonFolderName": {
+				"type": "string",
+				"defaultValue": "cleansed_documents"
+			},
+			"AoaiModelName": {
+				"type": "string",
+				"defaultValue": "text-davinci-001-demo-eus"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-04-21T21:34:47Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

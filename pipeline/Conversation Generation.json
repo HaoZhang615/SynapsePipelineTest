@@ -1,0 +1,164 @@
+{
+	"name": "Conversation Generation",
+	"properties": {
+		"activities": [
+			{
+				"name": "Document Generation",
+				"type": "SynapseNotebook",
+				"dependsOn": [
+					{
+						"activity": "Get AOAI API Base",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Get AOAI API Key",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": true
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebook": {
+						"referenceName": "document_generation",
+						"type": "NotebookReference"
+					},
+					"parameters": {
+						"AOAI_API_BASE": {
+							"value": {
+								"value": "@activity('Get AOAI API Base').output.value",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"AOAI_API_KEY": {
+							"value": {
+								"value": "@activity('Get AOAI API Key').output.value",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"AOAI_MODEL_NAME": {
+							"value": {
+								"value": "@pipeline().parameters.AOAI_MODEL_NAME",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BLOB_ACCOUNT_NAME": {
+							"value": {
+								"value": "@pipeline().parameters.BLOB_ACCOUNT_NAME",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BLOB_CONTAINER_NAME": {
+							"value": {
+								"value": "@pipeline().parameters.BLOB_CONTAINER_NAME",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"FILE_AMOUNT": {
+							"value": {
+								"value": "@pipeline().parameters.FILE_AMOUNT",
+								"type": "Expression"
+							},
+							"type": "int"
+						}
+					},
+					"snapshot": true,
+					"sparkPool": {
+						"referenceName": "SparkPoolS",
+						"type": "BigDataPoolReference"
+					},
+					"executorSize": "Small",
+					"conf": {
+						"spark.dynamicAllocation.enabled": false
+					},
+					"driverSize": "Small"
+				}
+			},
+			{
+				"name": "Get AOAI API Base",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": true,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": "https://openai-batch-kv.vault.azure.net/secrets/AOAI-API-BASE?api-version=7.0",
+					"connectVia": {
+						"referenceName": "AutoResolveIntegrationRuntime",
+						"type": "IntegrationRuntimeReference"
+					},
+					"method": "GET",
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			},
+			{
+				"name": "Get AOAI API Key",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": true,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": "https://openai-batch-kv.vault.azure.net/secrets/AOAI-API-KEY?api-version=7.0",
+					"connectVia": {
+						"referenceName": "AutoResolveIntegrationRuntime",
+						"type": "IntegrationRuntimeReference"
+					},
+					"method": "GET",
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"AOAI_MODEL_NAME": {
+				"type": "string",
+				"defaultValue": "davinci3"
+			},
+			"BLOB_ACCOUNT_NAME": {
+				"type": "string",
+				"defaultValue": "hva77eiv36iwuazfunctions"
+			},
+			"BLOB_CONTAINER_NAME": {
+				"type": "string",
+				"defaultValue": "workshop-data"
+			},
+			"FILE_AMOUNT": {
+				"type": "int",
+				"defaultValue": 2
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-04-20T23:30:20Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}
