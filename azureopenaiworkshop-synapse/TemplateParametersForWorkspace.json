@@ -25,6 +25,27 @@
 		},
 		"azureopenaiworkshop-synapse-WorkspaceDefaultStorage_properties_typeProperties_url": {
 			"value": "https://aoaiworkshopadls.dfs.core.windows.net"
+		},
+		"Blob Trigger_properties_Batch Processing_parameters_StorageAccountName": {
+			"value": "hva77eiv36iwuazfunctions"
+		},
+		"Blob Trigger_properties_Batch Processing_parameters_SourceContainerName": {
+			"value": "workshop-data"
+		},
+		"Blob Trigger_properties_Batch Processing_parameters_ArchiveContainerName": {
+			"value": "archieve-data"
+		},
+		"Blob Trigger_properties_Batch Processing_parameters_TxtFolderName": {
+			"value": "generated_documents"
+		},
+		"Blob Trigger_properties_Batch Processing_parameters_JsonFolderName": {
+			"value": "cleansed_documents"
+		},
+		"Blob Trigger_properties_Batch Processing_parameters_AoaiModelName": {
+			"value": "text-davinci-001-demo-eus"
+		},
+		"Blob Trigger_properties_typeProperties_scope": {
+			"value": "/subscriptions/317ae932-c9d6-433d-9c3e-998b5943f458/resourceGroups/openai_batch_pipeline_demo/providers/Microsoft.Storage/storageAccounts/hva77eiv36iwuazfunctions"
 		}
 	}
 }

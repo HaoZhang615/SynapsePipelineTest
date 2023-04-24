@@ -36,6 +36,34 @@
 		"azureopenaiworkshop-synapse-WorkspaceDefaultStorage_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://aoaiworkshopadls.dfs.core.windows.net"
+		},
+		"Blob Trigger_properties_Batch Processing_parameters_StorageAccountName": {
+			"type": "string",
+			"defaultValue": "hva77eiv36iwuazfunctions"
+		},
+		"Blob Trigger_properties_Batch Processing_parameters_SourceContainerName": {
+			"type": "string",
+			"defaultValue": "workshop-data"
+		},
+		"Blob Trigger_properties_Batch Processing_parameters_ArchiveContainerName": {
+			"type": "string",
+			"defaultValue": "archieve-data"
+		},
+		"Blob Trigger_properties_Batch Processing_parameters_TxtFolderName": {
+			"type": "string",
+			"defaultValue": "generated_documents"
+		},
+		"Blob Trigger_properties_Batch Processing_parameters_JsonFolderName": {
+			"type": "string",
+			"defaultValue": "cleansed_documents"
+		},
+		"Blob Trigger_properties_Batch Processing_parameters_AoaiModelName": {
+			"type": "string",
+			"defaultValue": "text-davinci-001-demo-eus"
+		},
+		"Blob Trigger_properties_typeProperties_scope": {
+			"type": "string",
+			"defaultValue": "/subscriptions/317ae932-c9d6-433d-9c3e-998b5943f458/resourceGroups/openai_batch_pipeline_demo/providers/Microsoft.Storage/storageAccounts/hva77eiv36iwuazfunctions"
 		}
 	},
 	"variables": {
@@ -544,65 +572,6 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('workspaceName'), '/Simulator')]",
-			"type": "Microsoft.Synapse/workspaces/pipelines",
-			"apiVersion": "2019-06-01-preview",
-			"properties": {
-				"activities": [
-					{
-						"name": "generate conversation TXT",
-						"type": "ExecutePipeline",
-						"dependsOn": [],
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "Conversation Generation",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {
-								"AOAI_MODEL_NAME": "text-davinci-001-demo-eus",
-								"FILE_AMOUNT": 50
-							}
-						}
-					},
-					{
-						"name": "process and housekeeping",
-						"type": "ExecutePipeline",
-						"dependsOn": [
-							{
-								"activity": "generate conversation TXT",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "Batch Processing",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {
-								"AoaiModelName": "text-davinci-001-demo-eus"
-							}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {},
-					"cancelAfter": {}
-				},
-				"annotations": [],
-				"lastPublishTime": "2023-04-21T21:39:24Z"
-			},
-			"dependsOn": [
-				"[concat(variables('workspaceId'), '/pipelines/Conversation Generation')]",
-				"[concat(variables('workspaceId'), '/pipelines/Batch Processing')]"
-			]
-		},
-		{
 			"name": "[concat(parameters('workspaceName'), '/Folder')]",
 			"type": "Microsoft.Synapse/workspaces/datasets",
 			"apiVersion": "2019-06-01-preview",
@@ -819,6 +788,44 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('workspaceName'), '/Blob Trigger')]",
+			"type": "Microsoft.Synapse/workspaces/triggers",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Started",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Batch Processing",
+							"type": "PipelineReference"
+						},
+						"parameters": {
+							"StorageAccountName": "[parameters('Blob Trigger_properties_Batch Processing_parameters_StorageAccountName')]",
+							"SourceContainerName": "[parameters('Blob Trigger_properties_Batch Processing_parameters_SourceContainerName')]",
+							"ArchiveContainerName": "[parameters('Blob Trigger_properties_Batch Processing_parameters_ArchiveContainerName')]",
+							"TxtFolderName": "[parameters('Blob Trigger_properties_Batch Processing_parameters_TxtFolderName')]",
+							"JsonFolderName": "[parameters('Blob Trigger_properties_Batch Processing_parameters_JsonFolderName')]",
+							"AoaiModelName": "[parameters('Blob Trigger_properties_Batch Processing_parameters_AoaiModelName')]"
+						}
+					}
+				],
+				"type": "BlobEventsTrigger",
+				"typeProperties": {
+					"blobPathBeginsWith": "/workshop-data/blobs/generated_documents/",
+					"blobPathEndsWith": ".txt",
+					"ignoreEmptyBlobs": true,
+					"scope": "[parameters('Blob Trigger_properties_typeProperties_scope')]",
+					"events": [
+						"Microsoft.Storage.BlobCreated"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/pipelines/Batch Processing')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/AutoResolveIntegrationRuntime')]",
 			"type": "Microsoft.Synapse/workspaces/integrationRuntimes",
 			"apiVersion": "2019-06-01-preview",
@@ -928,6 +935,26 @@
 			"properties": {
 				"content": {
 					"query": "SELECT TOP (100) [interaction_summary]\n,[sentiment]\n,[topic]\n,[product]\n,[filename]\n FROM [dbo].[cs_detail]",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "aoaiworkshopsqlpool",
+						"poolName": "aoaiworkshopsqlpool"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SQL script 2')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "SELECT TOP (1000) [interaction_summary]\n,[sentiment]\n,[topic]\n,[product]\n,[filename]\n FROM [dbo].[cs_detail]",
 					"metadata": {
 						"language": "sql"
 					},
