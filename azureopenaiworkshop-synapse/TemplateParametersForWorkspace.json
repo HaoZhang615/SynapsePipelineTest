@@ -1,0 +1,30 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"workspaceName": {
+			"value": "azureopenaiworkshop-synapse"
+		},
+		"AzureFunction_functionKey": {
+			"value": ""
+		},
+		"aoaiworkshopblob_connectionString": {
+			"value": ""
+		},
+		"aoaiworkshopsynapse_connectionString": {
+			"value": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=azureopenaiworkshop-synapse.sql.azuresynapse.net;Initial Catalog=aoaiworkshopsqlpool"
+		},
+		"azureopenaiworkshop-synapse-WorkspaceDefaultSqlServer_connectionString": {
+			"value": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=tcp:azureopenaiworkshop-synapse.sql.azuresynapse.net,1433;Initial Catalog=@{linkedService().DBName}"
+		},
+		"AzureFunction_properties_typeProperties_functionAppUrl": {
+			"value": "https://func-hva77eiv36iwu.azurewebsites.net"
+		},
+		"AzureKeyVault_properties_typeProperties_baseUrl": {
+			"value": "https://openai-batch-kv.vault.azure.net/"
+		},
+		"azureopenaiworkshop-synapse-WorkspaceDefaultStorage_properties_typeProperties_url": {
+			"value": "https://aoaiworkshopadls.dfs.core.windows.net"
+		}
+	}
+}

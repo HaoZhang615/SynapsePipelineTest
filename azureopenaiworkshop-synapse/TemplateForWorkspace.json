@@ -1,0 +1,1636 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"workspaceName": {
+			"type": "string",
+			"metadata": "Workspace name",
+			"defaultValue": "azureopenaiworkshop-synapse"
+		},
+		"AzureFunction_functionKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'functionKey' of 'AzureFunction'"
+		},
+		"aoaiworkshopblob_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'aoaiworkshopblob'"
+		},
+		"aoaiworkshopsynapse_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'aoaiworkshopsynapse'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=azureopenaiworkshop-synapse.sql.azuresynapse.net;Initial Catalog=aoaiworkshopsqlpool"
+		},
+		"azureopenaiworkshop-synapse-WorkspaceDefaultSqlServer_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'azureopenaiworkshop-synapse-WorkspaceDefaultSqlServer'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=tcp:azureopenaiworkshop-synapse.sql.azuresynapse.net,1433;Initial Catalog=@{linkedService().DBName}"
+		},
+		"AzureFunction_properties_typeProperties_functionAppUrl": {
+			"type": "string",
+			"defaultValue": "https://func-hva77eiv36iwu.azurewebsites.net"
+		},
+		"AzureKeyVault_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://openai-batch-kv.vault.azure.net/"
+		},
+		"azureopenaiworkshop-synapse-WorkspaceDefaultStorage_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://aoaiworkshopadls.dfs.core.windows.net"
+		}
+	},
+	"variables": {
+		"workspaceId": "[concat('Microsoft.Synapse/workspaces/', parameters('workspaceName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('workspaceName'), '/Batch Processing')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Load JSON to SQL",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "TXT 2 AOAI 2 JSON",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "Dataflow1",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {
+										"container": {
+											"value": "@pipeline().parameters.SourceContainerName",
+											"type": "Expression"
+										},
+										"directory": {
+											"value": "@pipeline().parameters.JsonFolderName",
+											"type": "Expression"
+										}
+									},
+									"sink1": {}
+								}
+							},
+							"staging": {
+								"linkedService": {
+									"referenceName": "aoaiworkshopblob",
+									"type": "LinkedServiceReference"
+								},
+								"folderPath": "workshop-data/staging"
+							},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "Get AOAI API Base",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": true,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://openai-batch-kv.vault.azure.net/secrets/AOAI-API-BASE?api-version=7.0",
+							"connectVia": {
+								"referenceName": "AutoResolveIntegrationRuntime",
+								"type": "IntegrationRuntimeReference"
+							},
+							"method": "GET",
+							"headers": {},
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://vault.azure.net"
+							}
+						}
+					},
+					{
+						"name": "Get AOAI API Key",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": true,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://openai-batch-kv.vault.azure.net/secrets/AOAI-API-KEY?api-version=7.0",
+							"connectVia": {
+								"referenceName": "AutoResolveIntegrationRuntime",
+								"type": "IntegrationRuntimeReference"
+							},
+							"method": "GET",
+							"headers": {},
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://vault.azure.net"
+							}
+						}
+					},
+					{
+						"name": "Delete all TXT from source container",
+						"type": "Delete",
+						"dependsOn": [
+							{
+								"activity": "Load JSON to SQL",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "Folder",
+								"type": "DatasetReference",
+								"parameters": {
+									"container": {
+										"value": "@pipeline().parameters.SourceContainerName",
+										"type": "Expression"
+									},
+									"directory": {
+										"value": "@pipeline().parameters.TxtFolderName",
+										"type": "Expression"
+									}
+								}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobStorageReadSettings",
+								"recursive": true,
+								"wildcardFileName": "*",
+								"enablePartitionDiscovery": false
+							}
+						}
+					},
+					{
+						"name": "Delete all JSON from source container_copy1",
+						"type": "Delete",
+						"dependsOn": [
+							{
+								"activity": "Load JSON to SQL",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "Folder",
+								"type": "DatasetReference",
+								"parameters": {
+									"container": {
+										"value": "@pipeline().parameters.SourceContainerName",
+										"type": "Expression"
+									},
+									"directory": {
+										"value": "@pipeline().parameters.JsonFolderName",
+										"type": "Expression"
+									}
+								}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobStorageReadSettings",
+								"recursive": true,
+								"wildcardFileName": "*",
+								"enablePartitionDiscovery": false
+							}
+						}
+					},
+					{
+						"name": "TXT 2 AOAI 2 JSON",
+						"type": "SynapseNotebook",
+						"dependsOn": [
+							{
+								"activity": "Get AOAI API Base",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Get AOAI API Key",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebook": {
+								"referenceName": "cleansed_generation",
+								"type": "NotebookReference"
+							},
+							"parameters": {
+								"AOAI_API_BASE": {
+									"value": {
+										"value": "@activity('Get AOAI API Base').output.value",
+										"type": "Expression"
+									},
+									"type": "string"
+								},
+								"AOAI_API_KEY": {
+									"value": {
+										"value": "@activity('Get AOAI API Key').output.value",
+										"type": "Expression"
+									},
+									"type": "string"
+								},
+								"AOAI_MODEL_NAME": {
+									"value": {
+										"value": "@pipeline().parameters.AoaiModelName",
+										"type": "Expression"
+									},
+									"type": "string"
+								},
+								"BLOB_ACCOUNT_NAME": {
+									"value": {
+										"value": "@pipeline().parameters.StorageAccountName",
+										"type": "Expression"
+									},
+									"type": "string"
+								},
+								"SOURCE_BLOB_CONTAINER_NAME": {
+									"value": {
+										"value": "@pipeline().parameters.SourceContainerName",
+										"type": "Expression"
+									},
+									"type": "string"
+								},
+								"ARCHIEVE_BLOB_CONTAINER_NAME": {
+									"value": {
+										"value": "@pipeline().parameters.ArchiveContainerName",
+										"type": "Expression"
+									},
+									"type": "string"
+								}
+							},
+							"snapshot": true,
+							"sparkPool": {
+								"referenceName": "SparkPoolS",
+								"type": "BigDataPoolReference"
+							},
+							"executorSize": "Medium",
+							"conf": {
+								"spark.dynamicAllocation.enabled": false
+							},
+							"driverSize": "Medium"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"StorageAccountName": {
+						"type": "string",
+						"defaultValue": "hva77eiv36iwuazfunctions"
+					},
+					"SourceContainerName": {
+						"type": "string",
+						"defaultValue": "workshop-data"
+					},
+					"ArchiveContainerName": {
+						"type": "string",
+						"defaultValue": "archieve-data"
+					},
+					"TxtFolderName": {
+						"type": "string",
+						"defaultValue": "generated_documents"
+					},
+					"JsonFolderName": {
+						"type": "string",
+						"defaultValue": "cleansed_documents"
+					},
+					"AoaiModelName": {
+						"type": "string",
+						"defaultValue": "text-davinci-001-demo-eus"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-04-21T21:34:47Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/dataflows/Dataflow1')]",
+				"[concat(variables('workspaceId'), '/linkedServices/aoaiworkshopblob')]",
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]",
+				"[concat(variables('workspaceId'), '/datasets/Folder')]",
+				"[concat(variables('workspaceId'), '/notebooks/cleansed_generation')]",
+				"[concat(variables('workspaceId'), '/bigDataPools/SparkPoolS')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Conversation Generation')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Document Generation",
+						"type": "SynapseNotebook",
+						"dependsOn": [
+							{
+								"activity": "Get AOAI API Base",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Get AOAI API Key",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": true
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebook": {
+								"referenceName": "document_generation",
+								"type": "NotebookReference"
+							},
+							"parameters": {
+								"AOAI_API_BASE": {
+									"value": {
+										"value": "@activity('Get AOAI API Base').output.value",
+										"type": "Expression"
+									},
+									"type": "string"
+								},
+								"AOAI_API_KEY": {
+									"value": {
+										"value": "@activity('Get AOAI API Key').output.value",
+										"type": "Expression"
+									},
+									"type": "string"
+								},
+								"AOAI_MODEL_NAME": {
+									"value": {
+										"value": "@pipeline().parameters.AOAI_MODEL_NAME",
+										"type": "Expression"
+									},
+									"type": "string"
+								},
+								"BLOB_ACCOUNT_NAME": {
+									"value": {
+										"value": "@pipeline().parameters.BLOB_ACCOUNT_NAME",
+										"type": "Expression"
+									},
+									"type": "string"
+								},
+								"BLOB_CONTAINER_NAME": {
+									"value": {
+										"value": "@pipeline().parameters.BLOB_CONTAINER_NAME",
+										"type": "Expression"
+									},
+									"type": "string"
+								},
+								"FILE_AMOUNT": {
+									"value": {
+										"value": "@pipeline().parameters.FILE_AMOUNT",
+										"type": "Expression"
+									},
+									"type": "int"
+								}
+							},
+							"snapshot": true,
+							"sparkPool": {
+								"referenceName": "SparkPoolS",
+								"type": "BigDataPoolReference"
+							},
+							"executorSize": "Small",
+							"conf": {
+								"spark.dynamicAllocation.enabled": false
+							},
+							"driverSize": "Small"
+						}
+					},
+					{
+						"name": "Get AOAI API Base",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": true,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://openai-batch-kv.vault.azure.net/secrets/AOAI-API-BASE?api-version=7.0",
+							"connectVia": {
+								"referenceName": "AutoResolveIntegrationRuntime",
+								"type": "IntegrationRuntimeReference"
+							},
+							"method": "GET",
+							"headers": {},
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://vault.azure.net"
+							}
+						}
+					},
+					{
+						"name": "Get AOAI API Key",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": true,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://openai-batch-kv.vault.azure.net/secrets/AOAI-API-KEY?api-version=7.0",
+							"connectVia": {
+								"referenceName": "AutoResolveIntegrationRuntime",
+								"type": "IntegrationRuntimeReference"
+							},
+							"method": "GET",
+							"headers": {},
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://vault.azure.net"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"AOAI_MODEL_NAME": {
+						"type": "string",
+						"defaultValue": "text-davinci-003-demo-eus"
+					},
+					"BLOB_ACCOUNT_NAME": {
+						"type": "string",
+						"defaultValue": "hva77eiv36iwuazfunctions"
+					},
+					"BLOB_CONTAINER_NAME": {
+						"type": "string",
+						"defaultValue": "workshop-data"
+					},
+					"FILE_AMOUNT": {
+						"type": "int",
+						"defaultValue": 2
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-04-20T23:30:20Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/notebooks/document_generation')]",
+				"[concat(variables('workspaceId'), '/bigDataPools/SparkPoolS')]",
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Simulator')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "generate conversation TXT",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Conversation Generation",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"AOAI_MODEL_NAME": "text-davinci-001-demo-eus",
+								"FILE_AMOUNT": 50
+							}
+						}
+					},
+					{
+						"name": "process and housekeeping",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "generate conversation TXT",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Batch Processing",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"AoaiModelName": "text-davinci-001-demo-eus"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-04-21T21:39:24Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/pipelines/Conversation Generation')]",
+				"[concat(variables('workspaceId'), '/pipelines/Batch Processing')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Folder')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "aoaiworkshopblob",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"container": {
+						"type": "string",
+						"defaultValue": "workshop-data"
+					},
+					"directory": {
+						"type": "string",
+						"defaultValue": "generated_documents"
+					}
+				},
+				"annotations": [],
+				"type": "Binary",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"folderPath": {
+							"value": "@dataset().directory",
+							"type": "Expression"
+						},
+						"container": {
+							"value": "@dataset().container",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/aoaiworkshopblob')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Json')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "aoaiworkshopblob",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"container": {
+						"type": "string",
+						"defaultValue": "workshop-data"
+					},
+					"directory": {
+						"type": "string",
+						"defaultValue": "generated_documents"
+					}
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"folderPath": {
+							"value": "@dataset().directory",
+							"type": "Expression"
+						},
+						"container": {
+							"value": "@dataset().container",
+							"type": "Expression"
+						}
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"summary": {
+							"type": "string"
+						},
+						"customerSentiment": {
+							"type": "string"
+						},
+						"topic": {
+							"type": "string"
+						},
+						"product": {
+							"type": "string"
+						},
+						"filename": {
+							"type": "string"
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/aoaiworkshopblob')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/AzureFunction')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureFunction",
+				"typeProperties": {
+					"functionAppUrl": "[parameters('AzureFunction_properties_typeProperties_functionAppUrl')]",
+					"functionKey": {
+						"type": "SecureString",
+						"value": "[parameters('AzureFunction_functionKey')]"
+					},
+					"authentication": "Anonymous"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/AzureKeyVault')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureKeyVault",
+				"typeProperties": {
+					"baseUrl": "[parameters('AzureKeyVault_properties_typeProperties_baseUrl')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/aoaiworkshopblob')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobStorage",
+				"typeProperties": {
+					"connectionString": "[parameters('aoaiworkshopblob_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/aoaiworkshopsynapse')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDW",
+				"typeProperties": {
+					"connectionString": "[parameters('aoaiworkshopsynapse_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/azureopenaiworkshop-synapse-WorkspaceDefaultSqlServer')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"parameters": {
+					"DBName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlDW",
+				"typeProperties": {
+					"connectionString": "[parameters('azureopenaiworkshop-synapse-WorkspaceDefaultSqlServer_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/azureopenaiworkshop-synapse-WorkspaceDefaultStorage')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('azureopenaiworkshop-synapse-WorkspaceDefaultStorage_properties_typeProperties_url')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/AutoResolveIntegrationRuntime')]",
+			"type": "Microsoft.Synapse/workspaces/integrationRuntimes",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "Managed",
+				"typeProperties": {
+					"computeProperties": {
+						"location": "AutoResolve",
+						"dataFlowProperties": {
+							"computeType": "General",
+							"coreCount": 8,
+							"timeToLive": 0
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Dataflow1')]",
+			"type": "Microsoft.Synapse/workspaces/dataflows",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "Json",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "aoaiworkshopsynapse",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "select1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          summary as string,",
+						"          customerSentiment as string,",
+						"          topic as string,",
+						"          product as string,",
+						"          filename as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     documentForm: 'arrayOfDocuments') ~> source1",
+						"source1 select(mapColumn(",
+						"          interaction_summary = summary,",
+						"          sentiment = customerSentiment,",
+						"          topic,",
+						"          product,",
+						"          filename",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"select1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     store: 'synapseanalytics',",
+						"     schemaName: 'dbo',",
+						"     tableName: 'cs_detail',",
+						"     insertable: true,",
+						"     updateable: false,",
+						"     deletable: false,",
+						"     upsertable: false,",
+						"     allowCopyCommand: true,",
+						"     staged: true,",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/Json')]",
+				"[concat(variables('workspaceId'), '/linkedServices/aoaiworkshopsynapse')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/WorkspaceSystemIdentity')]",
+			"type": "Microsoft.Synapse/workspaces/credentials",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "ManagedIdentity",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SQL script 1')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "SELECT TOP (100) [interaction_summary]\n,[sentiment]\n,[topic]\n,[product]\n,[filename]\n FROM [dbo].[cs_detail]",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "aoaiworkshopsqlpool",
+						"poolName": "aoaiworkshopsqlpool"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/cleansed_generation')]",
+			"type": "Microsoft.Synapse/workspaces/notebooks",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"nbformat": 4,
+				"nbformat_minor": 2,
+				"bigDataPool": {
+					"referenceName": "SparkPoolS",
+					"type": "BigDataPoolReference"
+				},
+				"sessionProperties": {
+					"driverMemory": "28g",
+					"driverCores": 4,
+					"executorMemory": "28g",
+					"executorCores": 4,
+					"numExecutors": 2,
+					"runAsWorkspaceSystemIdentity": false,
+					"conf": {
+						"spark.dynamicAllocation.enabled": "false",
+						"spark.dynamicAllocation.minExecutors": "2",
+						"spark.dynamicAllocation.maxExecutors": "2",
+						"spark.autotune.trackingId": "a45eecce-ca33-416a-ac22-6b4365eff54f"
+					}
+				},
+				"metadata": {
+					"saveOutput": true,
+					"synapse_widget": {
+						"version": "0.1"
+					},
+					"enableDebugMode": false,
+					"kernelspec": {
+						"name": "synapse_pyspark",
+						"display_name": "Synapse PySpark"
+					},
+					"language_info": {
+						"name": "python"
+					},
+					"a365ComputeOptions": {
+						"id": "/subscriptions/317ae932-c9d6-433d-9c3e-998b5943f458/resourceGroups/openai_batch_pipeline_demo/providers/Microsoft.Synapse/workspaces/azureopenaiworkshop-synapse/bigDataPools/SparkPoolS",
+						"name": "SparkPoolS",
+						"type": "Spark",
+						"endpoint": "https://azureopenaiworkshop-synapse.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/SparkPoolS",
+						"auth": {
+							"type": "AAD",
+							"authResource": "https://dev.azuresynapse.net",
+							"authHeader": null
+						},
+						"sparkVersion": "3.3",
+						"nodeCount": 10,
+						"cores": 8,
+						"memory": 56,
+						"extraHeader": null
+					},
+					"sessionKeepAliveTimeout": 30
+				},
+				"cells": [
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"#Import modules\r\n",
+							"import openai\r\n",
+							"import json\r\n",
+							"from datetime import date\r\n",
+							"import time"
+						],
+						"outputs": [],
+						"execution_count": 2
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"tags": [
+								"parameters"
+							]
+						},
+						"source": [
+							"# Parameters to be referenced by synapse pipeline\r\n",
+							"AOAI_API_BASE = 'https://aoai-hz.openai.azure.com/'\r\n",
+							"AOAI_API_KEY = 'c48fe2c2d53a40b18167704bc7654d93'\r\n",
+							"AOAI_MODEL_NAME = 'davinci2'\r\n",
+							"BLOB_ACCOUNT_NAME = \"hva77eiv36iwuazfunctions\"\r\n",
+							"SOURCE_BLOB_CONTAINER_NAME = \"workshop-data\"\r\n",
+							"ARCHIEVE_BLOB_CONTAINER_NAME = \"archieve-data\""
+						],
+						"outputs": [],
+						"execution_count": 3
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"# Azure OpenAI API parameter setting - static for now, can be parameterized as well, if it make sense to do so.\r\n",
+							"temperature= 0.0\r\n",
+							"max_tokens= 2000\r\n",
+							"top_p= 0.50\r\n",
+							"frequency_penalty= 0.2\r\n",
+							"presence_penalty= 0.2\r\n",
+							"stop= None"
+						],
+						"outputs": [],
+						"execution_count": 4
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"# Set the stage for AOAI api call - referencing the parameters\r\n",
+							"openai.api_type = \"azure\" # static for AOAI\r\n",
+							"openai.api_base = AOAI_API_BASE\r\n",
+							"openai.api_version = \"2022-12-01\" # not static but change very infrequently\r\n",
+							"openai.api_key = AOAI_API_KEY\r\n",
+							"blob_account_name = BLOB_ACCOUNT_NAME\r\n",
+							"source_container_name = SOURCE_BLOB_CONTAINER_NAME\r\n",
+							"archieve_container_name = ARCHIEVE_BLOB_CONTAINER_NAME"
+						],
+						"outputs": [],
+						"execution_count": 5
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"# read the source data from folder <generated_documents>. Script below are mostly auto-generated by right-click on the file in data view --> new Notebook --> load in Dataframe\r\n",
+							"from pyspark.sql import SparkSession\r\n",
+							"\r\n",
+							"sc = SparkSession.builder.getOrCreate()\r\n",
+							"token_library = sc._jvm.com.microsoft.azure.synapse.tokenlibrary.TokenLibrary\r\n",
+							"blob_sas_token = token_library.getConnectionString(\"aoaiworkshopblob\")\r\n",
+							"\r\n",
+							"spark.conf.set(\r\n",
+							"    'fs.azure.sas.%s.%s.blob.core.windows.net' % (source_container_name, blob_account_name),\r\n",
+							"    blob_sas_token)\r\n",
+							"spark.conf.set(\r\n",
+							"    'fs.azure.sas.%s.%s.blob.core.windows.net' % (archieve_container_name, blob_account_name),\r\n",
+							"    blob_sas_token)"
+						],
+						"outputs": [],
+						"execution_count": 6
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"# list variable of all the file names\r\n",
+							"files = mssparkutils.fs.ls(f'wasbs://{SOURCE_BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/generated_documents/')"
+						],
+						"outputs": [],
+						"execution_count": 7
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"# define a current date for later copy activity\r\n",
+							"Current_Date = str(date.today())\r\n",
+							"# convert the necessary extra command from prompt engineering in AOAI playground to a string.\r\n",
+							"prompt_requirement = '\\nTASK 1: provide a summary with max. 100 words.\\nTASK 2: detect customer sentiment of the conversation in one word and choose among positive, negative, neutral, mixed, content, upset, angry, frustrated, happy, disappointed and confused.\\nTASK 3: extract the topic of the converstation in one word and choose among churn, upgrade services, downgrade services, assistance, support, information, billing, payment, account, service, other.\\nTASK 4: extract the which product the converstation is about and choose among phone, internet, tv, streaming and other.\\nFINAL TASK: put the result of TASK 1 to TASK 4 into JSON file with following schema:\\n{\\n    \"summary\": \"result of TASK 1\",\\n    \"customerSentiment\": \"result of TASK 2\",\\n    \"topic\": \"result of TASK 3\",\\n    \"product\": \"result of TASK 4\"\\n}\\n\\nFINAL TASK:\\n'"
+						],
+						"outputs": [],
+						"execution_count": 8
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"# function: call AOAI API \r\n",
+							"def create_document(engine, document_creation_prompt, temperature=0.7, max_tokens=2000, top_p=1, frequency_penalty=0, presence_penalty=0, stop=None):\r\n",
+							"    # Submit the answer from the QA Bot to the AOAI model for summariation\r\n",
+							"    openai_output = openai.Completion.create(\r\n",
+							"      engine= engine,\r\n",
+							"      prompt= document_creation_prompt, \r\n",
+							"      temperature= temperature,\r\n",
+							"      max_tokens= max_tokens,\r\n",
+							"      top_p= top_p,\r\n",
+							"      frequency_penalty= frequency_penalty,\r\n",
+							"      presence_penalty= presence_penalty,\r\n",
+							"      stop= None)\r\n",
+							"    \r\n",
+							"    generated_document = openai_output.choices[0].text\r\n",
+							"\r\n",
+							"    return generated_document"
+						],
+						"outputs": [],
+						"execution_count": 9
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"for file in files:\r\n",
+							"    try:\r\n",
+							"        # extract the file path after container name level for reuse in archieving\r\n",
+							"        file_path= '/'.join(file.path.split('/')[3:])\r\n",
+							"        # spark read file dynamically into a dataframe\r\n",
+							"        df=spark.read.text(f\"wasbs://{SOURCE_BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/{file_path}\")\r\n",
+							"        # convert the text from dataframe to a string variable\r\n",
+							"        s = '\\n'.join(d['value'] for d in df.collect())\r\n",
+							"        # combine the converstation text and the extra command into a final prompt as input for Azure OpenAI model\r\n",
+							"        prompt = (s+prompt_requirement).lstrip().rstrip()\r\n",
+							"        # call the AOAI API\r\n",
+							"        generated_document = create_document(AOAI_MODEL_NAME, prompt, temperature, max_tokens, top_p,frequency_penalty, presence_penalty, stop)\r\n",
+							"        # convert the returned message from Azure OpenAI model into a JSON variable (dictionary)\r\n",
+							"        aoai_return = json.loads(generated_document)\r\n",
+							"        # append the JSON with an extra element --> filename (for lineage keeping)\r\n",
+							"        aoai_return[\"filename\"] = file.name\r\n",
+							"        # write final JSON to cleansed_documents folder\r\n",
+							"        mssparkutils.fs.put(f'wasbs://{SOURCE_BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/cleansed_documents/'+file.name.replace(\"txt\",\"json\"), json.dumps(aoai_return), True)\r\n",
+							"        # copy source TXT to archieve container under current date subfolder\r\n",
+							"        mssparkutils.fs.cp(f\"wasbs://{SOURCE_BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/{file_path}\", f'wasbs://{ARCHIEVE_BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/{Current_Date}/{file_path}', True)\r\n",
+							"        # copy result JSON to archieve container under current date subfolder\r\n",
+							"        mssparkutils.fs.put(f'wasbs://{ARCHIEVE_BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/{Current_Date}/cleansed_documents/'+file.name.replace(\"txt\",\"json\"), json.dumps(aoai_return), True)\r\n",
+							"    except Exception as e:\r\n",
+							"        print(f\"An error occurred while processing file {file.name}: {e}\")\r\n",
+							"        # copy file that generates an error to \"file with error\" folder\r\n",
+							"        mssparkutils.fs.cp(f\"wasbs://{SOURCE_BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/{file_path}\", f'wasbs://{SOURCE_BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/file_with_error/{file.name}', True)\r\n",
+							"    time.sleep(.50)"
+						],
+						"outputs": [],
+						"execution_count": 10
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/document_generation')]",
+			"type": "Microsoft.Synapse/workspaces/notebooks",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"nbformat": 4,
+				"nbformat_minor": 2,
+				"bigDataPool": {
+					"referenceName": "SparkPoolS",
+					"type": "BigDataPoolReference"
+				},
+				"sessionProperties": {
+					"driverMemory": "28g",
+					"driverCores": 4,
+					"executorMemory": "28g",
+					"executorCores": 4,
+					"numExecutors": 2,
+					"runAsWorkspaceSystemIdentity": false,
+					"conf": {
+						"spark.dynamicAllocation.enabled": "false",
+						"spark.dynamicAllocation.minExecutors": "2",
+						"spark.dynamicAllocation.maxExecutors": "2",
+						"spark.autotune.trackingId": "d7d26df2-2acf-42ba-89f7-341d3bc0ade6"
+					}
+				},
+				"metadata": {
+					"saveOutput": true,
+					"synapse_widget": {
+						"version": "0.1"
+					},
+					"enableDebugMode": false,
+					"kernelspec": {
+						"name": "synapse_pyspark",
+						"display_name": "Synapse PySpark"
+					},
+					"language_info": {
+						"name": "python"
+					},
+					"a365ComputeOptions": {
+						"id": "/subscriptions/317ae932-c9d6-433d-9c3e-998b5943f458/resourceGroups/openai_batch_pipeline_demo/providers/Microsoft.Synapse/workspaces/azureopenaiworkshop-synapse/bigDataPools/SparkPoolS",
+						"name": "SparkPoolS",
+						"type": "Spark",
+						"endpoint": "https://azureopenaiworkshop-synapse.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/SparkPoolS",
+						"auth": {
+							"type": "AAD",
+							"authResource": "https://dev.azuresynapse.net",
+							"authHeader": null
+						},
+						"sparkVersion": "3.3",
+						"nodeCount": 10,
+						"cores": 8,
+						"memory": 56,
+						"extraHeader": null
+					},
+					"sessionKeepAliveTimeout": 30
+				},
+				"cells": [
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"#Import modules and enable access from Spark Pool to Blob Storage\r\n",
+							"import openai\r\n",
+							"import random\r\n",
+							"import time\r\n",
+							"from pyspark.sql import SparkSession"
+						],
+						"outputs": [],
+						"execution_count": 11
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"tags": [
+								"parameters"
+							]
+						},
+						"source": [
+							"# Parameters to be referenced by synapse pipeline\r\n",
+							"AOAI_API_BASE = 'https://aoai-hz.openai.azure.com/'\r\n",
+							"AOAI_API_KEY = 'c48fe2c2d53a40b18167704bc7654d93'\r\n",
+							"AOAI_MODEL_NAME = 'davinci2'\r\n",
+							"#FILENAME = '1_331_243_disappointed_upgrade services_streaming_document.txt'\r\n",
+							"BLOB_ACCOUNT_NAME = \"hva77eiv36iwuazfunctions\"\r\n",
+							"BLOB_CONTAINER_NAME = \"workshop-data\"\r\n",
+							"FILE_AMOUNT = 2"
+						],
+						"outputs": [],
+						"execution_count": 12
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"# Azure OpenAI API parameter setting - static for now, can be parameterized as well, if it make sense to do so.\r\n",
+							"temperature= 0.6\r\n",
+							"max_tokens= 1500\r\n",
+							"top_p= 0.80\r\n",
+							"frequency_penalty= 0.3\r\n",
+							"presence_penalty= 0.2\r\n",
+							"stop= None"
+						],
+						"outputs": [],
+						"execution_count": 13
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"# Set the stage for AOAI api call - referencing the parameters\r\n",
+							"openai.api_type = \"azure\" # static for AOAI\r\n",
+							"openai.api_base = AOAI_API_BASE\r\n",
+							"openai.api_version = \"2022-12-01\" # not static but change very infrequently\r\n",
+							"openai.api_key = AOAI_API_KEY\r\n",
+							"blob_account_name = BLOB_ACCOUNT_NAME\r\n",
+							"blob_container_name = BLOB_CONTAINER_NAME"
+						],
+						"outputs": [],
+						"execution_count": 14
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"# initialize a Spark Session\r\n",
+							"sc = SparkSession.builder.getOrCreate()\r\n",
+							"token_library = sc._jvm.com.microsoft.azure.synapse.tokenlibrary.TokenLibrary\r\n",
+							"blob_sas_token = token_library.getConnectionString(\"aoaiworkshopblob\")\r\n",
+							"\r\n",
+							"spark.conf.set(\r\n",
+							"    'fs.azure.sas.%s.%s.blob.core.windows.net' % (blob_container_name, blob_account_name),\r\n",
+							"    blob_sas_token)"
+						],
+						"outputs": [],
+						"execution_count": 15
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"# function: generate random combination of sentiment, topic and product for AOAI to synthesize converstation content.\r\n",
+							"def randomized_prompt_elements(sentiments_list, topics_list, products_list):\r\n",
+							"    # Randomly draw an element from the supplied lists for the sentiment, topic, and product \r\n",
+							"    random_sentiment = random.choice(sentiments_list)\r\n",
+							"    random_topic = random.choice(topics_list)\r\n",
+							"    random_product = random.choice(products_list)\r\n",
+							"    \r\n",
+							"    # Return the randomized element string \r\n",
+							"    return random_sentiment, random_topic, random_product"
+						],
+						"outputs": [],
+						"execution_count": 16
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"# function: call AOAI API \r\n",
+							"def create_document(doc_generation_engine, document_creation_prompt, temperature=0.7, max_tokens=2000, top_p=1, frequency_penalty=0, presence_penalty=0, stop=None):\r\n",
+							"    # Submit the answer from the QA Bot to the AOAI model for summariation\r\n",
+							"    openai_output = openai.Completion.create(\r\n",
+							"      engine= doc_generation_engine,\r\n",
+							"      prompt= document_creation_prompt, \r\n",
+							"      temperature= temperature,\r\n",
+							"      max_tokens= max_tokens,\r\n",
+							"      top_p= top_p,\r\n",
+							"      frequency_penalty= frequency_penalty,\r\n",
+							"      presence_penalty= presence_penalty,\r\n",
+							"      stop= None)\r\n",
+							"    \r\n",
+							"    generated_document = openai_output.choices[0].text\r\n",
+							"\r\n",
+							"    return openai_output,generated_document"
+						],
+						"outputs": [],
+						"execution_count": 17
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"# function: create dynamic document name based on the randomized combination of sentiment, topic and product. \r\n",
+							"def create_document_name(i, random_sentiment, random_topic, random_product, total_tokens, completion_tokens):\r\n",
+							"    # Create a name for the document based on the randomly selected sentiment, topic, and product\r\n",
+							"    document_name = f'{i}_{total_tokens}_{completion_tokens}_{random_sentiment}_{random_topic}_{random_product}_document.txt'\r\n",
+							"    return document_name"
+						],
+						"outputs": [],
+						"execution_count": 18
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"# declare the 3 lists with allowed values\r\n",
+							"sentiments_list = ['positive', 'negative', 'neutral', 'mixed', 'content', 'upset', 'angry', 'frustrated', 'happy', 'disappointed', 'confused']\r\n",
+							"topics_list = ['churn', 'upgrade services', 'downgrade services', 'assistance', 'support', 'information', 'billing', 'payment', 'account', 'service', 'other']\r\n",
+							"products_list = ['phone', 'internet', 'tv', 'streaming', 'other']"
+						],
+						"outputs": [],
+						"execution_count": 19
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"for i in range(FILE_AMOUNT):# the range number decides how many files/synthetic conversations should be generated in a randomized manner. \r\n",
+							"        # parameterized prompt generation\r\n",
+							"        random_sentiment, random_topic, random_product = randomized_prompt_elements(sentiments_list, topics_list, products_list)\r\n",
+							"        document_creation_prompt = f'CREATE a document representing an exchange between a customer service \\\r\n",
+							"    agent for the fictitious company Contoso Wireless and their customer. The sentiment of the customer must be {random_sentiment} and \\\r\n",
+							"    the topic of the conversation betweem the agent and customer should center around {random_topic}. The customer must be asking about the product {random_product}. The document should have at least \\\r\n",
+							"    8 back and forth exchanges between the customer and the agent and the length MUST NOT EXCEED 1000 words.'\r\n",
+							"\r\n",
+							"        openai_output, generated_document = create_document(AOAI_MODEL_NAME, document_creation_prompt, temperature, max_tokens, top_p,\\\r\n",
+							"                                                            frequency_penalty, presence_penalty, stop)\r\n",
+							"\r\n",
+							"        total_tokens, completion_tokens = openai_output.usage.total_tokens, openai_output.usage.completion_tokens\r\n",
+							"        document_name = create_document_name(i, random_sentiment, random_topic, random_product, total_tokens, completion_tokens)\r\n",
+							"\r\n",
+							"        # leverage MSFT Spark utility to write each generated converstation in txt file to Blob Storage Container\r\n",
+							"        mssparkutils.fs.put(f'wasbs://{BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/generated_documents/'+document_name, generated_document, True)\r\n",
+							"        time.sleep(.50)"
+						],
+						"outputs": [],
+						"execution_count": 20
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SparkPoolS')]",
+			"type": "Microsoft.Synapse/workspaces/bigDataPools",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"autoPause": {
+					"enabled": true,
+					"delayInMinutes": 30
+				},
+				"autoScale": {
+					"enabled": true,
+					"maxNodeCount": 50,
+					"minNodeCount": 3
+				},
+				"nodeCount": 10,
+				"nodeSize": "Medium",
+				"nodeSizeFamily": "MemoryOptimized",
+				"sparkVersion": "3.3",
+				"isComputeIsolationEnabled": false,
+				"sessionLevelPackagesEnabled": false,
+				"customLibraries": [
+					{
+						"name": "openai-0.27.4-py3-none-any.whl",
+						"path": "azureopenaiworkshop-synapse/libraries/openai-0.27.4-py3-none-any.whl",
+						"containerName": "prep",
+						"uploadedTimestamp": "0001-01-01T00:00:00+00:00",
+						"type": "whl"
+					}
+				],
+				"annotations": []
+			},
+			"dependsOn": [],
+			"location": "eastus"
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/aoaiworkshopsqlpool')]",
+			"type": "Microsoft.Synapse/workspaces/sqlPools",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"collation": "SQL_Latin1_General_CP1_CI_AS",
+				"maxSizeBytes": 263882790666240,
+				"annotations": []
+			},
+			"dependsOn": [],
+			"location": "eastus"
+		}
+	]
+}
