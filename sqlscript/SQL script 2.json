@@ -1,0 +1,17 @@
+{
+	"name": "SQL script 2",
+	"properties": {
+		"content": {
+			"query": "SELECT TOP (1000) [interaction_summary]\n,[sentiment]\n,[topic]\n,[product]\n,[filename]\n FROM [dbo].[cs_detail]",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "aoaiworkshopsqlpool",
+				"poolName": "aoaiworkshopsqlpool"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}
