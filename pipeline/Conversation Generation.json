@@ -142,7 +142,7 @@
 		"parameters": {
 			"AOAI_MODEL_NAME": {
 				"type": "string",
-				"defaultValue": "davinci3"
+				"defaultValue": "text-davinci-003-demo-eus"
 			},
 			"BLOB_ACCOUNT_NAME": {
 				"type": "string",
