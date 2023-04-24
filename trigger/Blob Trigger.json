@@ -1,0 +1,33 @@
+{
+	"name": "Blob Trigger",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "Batch Processing",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"StorageAccountName": "hva77eiv36iwuazfunctions",
+					"SourceContainerName": "workshop-data",
+					"ArchiveContainerName": "archieve-data",
+					"TxtFolderName": "generated_documents",
+					"JsonFolderName": "cleansed_documents",
+					"AoaiModelName": "text-davinci-001-demo-eus"
+				}
+			}
+		],
+		"type": "BlobEventsTrigger",
+		"typeProperties": {
+			"blobPathBeginsWith": "/workshop-data/blobs/generated_documents/",
+			"blobPathEndsWith": ".txt",
+			"ignoreEmptyBlobs": true,
+			"scope": "/subscriptions/317ae932-c9d6-433d-9c3e-998b5943f458/resourceGroups/openai_batch_pipeline_demo/providers/Microsoft.Storage/storageAccounts/hva77eiv36iwuazfunctions",
+			"events": [
+				"Microsoft.Storage.BlobCreated"
+			]
+		}
+	}
+}
