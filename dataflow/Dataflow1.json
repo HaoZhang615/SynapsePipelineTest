@@ -57,7 +57,7 @@
 				"     format: 'table',",
 				"     store: 'synapseanalytics',",
 				"     schemaName: 'dbo',",
-				"     tableName: 'cs.detail',",
+				"     tableName: 'cs_detail',",
 				"     insertable: true,",
 				"     updateable: false,",
 				"     deletable: false,",
