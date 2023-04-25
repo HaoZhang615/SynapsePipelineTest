@@ -18,14 +18,11 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "d7d26df2-2acf-42ba-89f7-341d3bc0ade6"
+				"spark.autotune.trackingId": "41dad15b-b56a-41aa-844e-e69b04e5305c"
 			}
 		},
 		"metadata": {
 			"saveOutput": true,
-			"synapse_widget": {
-				"version": "0.1"
-			},
 			"enableDebugMode": false,
 			"kernelspec": {
 				"name": "synapse_pyspark",
@@ -41,14 +38,13 @@
 				"endpoint": "https://azureopenaiworkshop-synapse.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/SparkPoolS",
 				"auth": {
 					"type": "AAD",
-					"authResource": "https://dev.azuresynapse.net",
-					"authHeader": null
+					"authResource": "https://dev.azuresynapse.net"
 				},
 				"sparkVersion": "3.3",
 				"nodeCount": 10,
 				"cores": 8,
 				"memory": 56,
-				"extraHeader": null
+				"automaticScaleJobs": false
 			},
 			"sessionKeepAliveTimeout": 30
 		},
@@ -73,7 +69,7 @@
 					"import time\r\n",
 					"from pyspark.sql import SparkSession"
 				],
-				"execution_count": 11
+				"execution_count": 32
 			},
 			{
 				"cell_type": "code",
@@ -101,7 +97,7 @@
 					"BLOB_CONTAINER_NAME = \"workshop-data\"\r\n",
 					"FILE_AMOUNT = 2"
 				],
-				"execution_count": 12
+				"execution_count": 33
 			},
 			{
 				"cell_type": "code",
@@ -125,7 +121,7 @@
 					"presence_penalty= 0.2\r\n",
 					"stop= None"
 				],
-				"execution_count": 13
+				"execution_count": 34
 			},
 			{
 				"cell_type": "code",
@@ -149,7 +145,7 @@
 					"blob_account_name = BLOB_ACCOUNT_NAME\r\n",
 					"blob_container_name = BLOB_CONTAINER_NAME"
 				],
-				"execution_count": 14
+				"execution_count": 35
 			},
 			{
 				"cell_type": "code",
@@ -174,7 +170,7 @@
 					"    'fs.azure.sas.%s.%s.blob.core.windows.net' % (blob_container_name, blob_account_name),\r\n",
 					"    blob_sas_token)"
 				],
-				"execution_count": 15
+				"execution_count": 36
 			},
 			{
 				"cell_type": "code",
@@ -200,7 +196,7 @@
 					"    # Return the randomized element string \r\n",
 					"    return random_sentiment, random_topic, random_product"
 				],
-				"execution_count": 16
+				"execution_count": 37
 			},
 			{
 				"cell_type": "code",
@@ -233,7 +229,7 @@
 					"\r\n",
 					"    return openai_output,generated_document"
 				],
-				"execution_count": 17
+				"execution_count": 38
 			},
 			{
 				"cell_type": "code",
@@ -255,7 +251,7 @@
 					"    document_name = f'{i}_{total_tokens}_{completion_tokens}_{random_sentiment}_{random_topic}_{random_product}_document.txt'\r\n",
 					"    return document_name"
 				],
-				"execution_count": 18
+				"execution_count": 39
 			},
 			{
 				"cell_type": "code",
@@ -276,7 +272,7 @@
 					"topics_list = ['churn', 'upgrade services', 'downgrade services', 'assistance', 'support', 'information', 'billing', 'payment', 'account', 'service', 'other']\r\n",
 					"products_list = ['phone', 'internet', 'tv', 'streaming', 'other']"
 				],
-				"execution_count": 19
+				"execution_count": 40
 			},
 			{
 				"cell_type": "code",
@@ -293,24 +289,26 @@
 				},
 				"source": [
 					"for i in range(FILE_AMOUNT):# the range number decides how many files/synthetic conversations should be generated in a randomized manner. \r\n",
-					"        # parameterized prompt generation\r\n",
-					"        random_sentiment, random_topic, random_product = randomized_prompt_elements(sentiments_list, topics_list, products_list)\r\n",
-					"        document_creation_prompt = f'CREATE a document representing an exchange between a customer service \\\r\n",
+					"    # parameterized prompt generation\r\n",
+					"    random_sentiment, random_topic, random_product = randomized_prompt_elements(sentiments_list, topics_list, products_list)\r\n",
+					"    document_creation_prompt = f'CREATE a document representing an exchange between a customer service \\\r\n",
 					"    agent for the fictitious company Contoso Wireless and their customer. The sentiment of the customer must be {random_sentiment} and \\\r\n",
 					"    the topic of the conversation betweem the agent and customer should center around {random_topic}. The customer must be asking about the product {random_product}. The document should have at least \\\r\n",
 					"    8 back and forth exchanges between the customer and the agent and the length MUST NOT EXCEED 1000 words.'\r\n",
 					"\r\n",
-					"        openai_output, generated_document = create_document(AOAI_MODEL_NAME, document_creation_prompt, temperature, max_tokens, top_p,\\\r\n",
+					"    openai_output, generated_document = create_document(AOAI_MODEL_NAME, document_creation_prompt, temperature, max_tokens, top_p,\\\r\n",
 					"                                                            frequency_penalty, presence_penalty, stop)\r\n",
 					"\r\n",
-					"        total_tokens, completion_tokens = openai_output.usage.total_tokens, openai_output.usage.completion_tokens\r\n",
-					"        document_name = create_document_name(i, random_sentiment, random_topic, random_product, total_tokens, completion_tokens)\r\n",
+					"    total_tokens, completion_tokens = openai_output.usage.total_tokens, openai_output.usage.completion_tokens\r\n",
+					"    document_name = create_document_name(i, random_sentiment, random_topic, random_product, total_tokens, completion_tokens)\r\n",
 					"\r\n",
-					"        # leverage MSFT Spark utility to write each generated converstation in txt file to Blob Storage Container\r\n",
-					"        mssparkutils.fs.put(f'wasbs://{BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/generated_documents/'+document_name, generated_document, True)\r\n",
-					"        time.sleep(.50)"
+					"    # leverage MSFT Spark utility to write each generated converstation in txt file to Blob Storage Container\r\n",
+					"    mssparkutils.fs.put(f'wasbs://{BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/generated_documents/'+document_name, generated_document, True)\r\n",
+					"    time.sleep(.50)\r\n",
+					"\r\n",
+					"mssparkutils.fs.rm(f'wasbs://{BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/generated_documents', True) # Set the last parameter as True to remove all files and directories recursively"
 				],
-				"execution_count": 20
+				"execution_count": 42
 			}
 		]
 	}
