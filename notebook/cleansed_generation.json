@@ -18,7 +18,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "98bcd6e7-ad50-417d-829d-cceb8ab72f2a"
+				"spark.autotune.trackingId": "081a05b9-1f9e-4cdc-a074-352e44a95c3d"
 			}
 		},
 		"metadata": {
@@ -69,7 +69,7 @@
 					"from datetime import date\r\n",
 					"import time"
 				],
-				"execution_count": 2
+				"execution_count": 11
 			},
 			{
 				"cell_type": "code",
@@ -96,7 +96,7 @@
 					"SOURCE_BLOB_CONTAINER_NAME = \"workshop-data\"\r\n",
 					"ARCHIEVE_BLOB_CONTAINER_NAME = \"archieve-data\""
 				],
-				"execution_count": 3
+				"execution_count": 12
 			},
 			{
 				"cell_type": "code",
@@ -120,7 +120,7 @@
 					"presence_penalty= 0.2\r\n",
 					"stop= None"
 				],
-				"execution_count": 4
+				"execution_count": 13
 			},
 			{
 				"cell_type": "code",
@@ -145,7 +145,7 @@
 					"source_container_name = SOURCE_BLOB_CONTAINER_NAME\r\n",
 					"archieve_container_name = ARCHIEVE_BLOB_CONTAINER_NAME"
 				],
-				"execution_count": 5
+				"execution_count": 14
 			},
 			{
 				"cell_type": "code",
@@ -175,7 +175,7 @@
 					"    'fs.azure.sas.%s.%s.blob.core.windows.net' % (archieve_container_name, blob_account_name),\r\n",
 					"    blob_sas_token)"
 				],
-				"execution_count": 6
+				"execution_count": 15
 			},
 			{
 				"cell_type": "code",
@@ -194,7 +194,7 @@
 					"# list variable of all the file names\r\n",
 					"files = mssparkutils.fs.ls(f'wasbs://{SOURCE_BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/generated_documents/')"
 				],
-				"execution_count": 7
+				"execution_count": 17
 			},
 			{
 				"cell_type": "code",
@@ -215,7 +215,7 @@
 					"# convert the necessary extra command from prompt engineering in AOAI playground to a string.\r\n",
 					"prompt_requirement = '\\nTASK 1: provide a summary with max. 100 words.\\nTASK 2: detect customer sentiment of the conversation in one word and choose among positive, negative, neutral, mixed, content, upset, angry, frustrated, happy, disappointed and confused.\\nTASK 3: extract the topic of the converstation in one word and choose among churn, upgrade services, downgrade services, assistance, support, information, billing, payment, account, service, other.\\nTASK 4: extract the which product the converstation is about and choose among phone, internet, tv, streaming and other.\\nFINAL TASK: put the result of TASK 1 to TASK 4 into JSON file with following schema:\\n{\\n    \"summary\": \"result of TASK 1\",\\n    \"customerSentiment\": \"result of TASK 2\",\\n    \"topic\": \"result of TASK 3\",\\n    \"product\": \"result of TASK 4\"\\n}\\n\\nFINAL TASK:\\n'"
 				],
-				"execution_count": 8
+				"execution_count": null
 			},
 			{
 				"cell_type": "code",
@@ -248,7 +248,7 @@
 					"\r\n",
 					"    return generated_document"
 				],
-				"execution_count": 9
+				"execution_count": null
 			},
 			{
 				"cell_type": "code",
@@ -292,7 +292,7 @@
 					"        mssparkutils.fs.cp(f\"wasbs://{SOURCE_BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/{file_path}\", f'wasbs://{SOURCE_BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/file_with_error/{file.name}', True)\r\n",
 					"    time.sleep(.50)"
 				],
-				"execution_count": 10
+				"execution_count": null
 			}
 		]
 	}

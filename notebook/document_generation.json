@@ -18,7 +18,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "af77aec9-f15a-41d5-b15b-7ed0173f2992"
+				"spark.autotune.trackingId": "880641a3-2a07-45dc-a5f2-0e941dfef3bc"
 			}
 		},
 		"metadata": {
@@ -69,7 +69,7 @@
 					"import time\r\n",
 					"from pyspark.sql import SparkSession"
 				],
-				"execution_count": 54
+				"execution_count": 66
 			},
 			{
 				"cell_type": "code",
@@ -97,7 +97,7 @@
 					"BLOB_CONTAINER_NAME = \"workshop-data\"\r\n",
 					"FILE_AMOUNT = 2"
 				],
-				"execution_count": 55
+				"execution_count": 67
 			},
 			{
 				"cell_type": "code",
@@ -121,7 +121,7 @@
 					"presence_penalty= 0.2\r\n",
 					"stop= None"
 				],
-				"execution_count": 56
+				"execution_count": 68
 			},
 			{
 				"cell_type": "code",
@@ -145,7 +145,7 @@
 					"blob_account_name = BLOB_ACCOUNT_NAME\r\n",
 					"blob_container_name = BLOB_CONTAINER_NAME"
 				],
-				"execution_count": 57
+				"execution_count": 69
 			},
 			{
 				"cell_type": "code",
@@ -170,7 +170,7 @@
 					"    'fs.azure.sas.%s.%s.blob.core.windows.net' % (blob_container_name, blob_account_name),\r\n",
 					"    blob_sas_token)"
 				],
-				"execution_count": 58
+				"execution_count": 70
 			},
 			{
 				"cell_type": "code",
@@ -196,7 +196,7 @@
 					"    # Return the randomized element string \r\n",
 					"    return random_sentiment, random_topic, random_product"
 				],
-				"execution_count": 59
+				"execution_count": 71
 			},
 			{
 				"cell_type": "code",
@@ -229,7 +229,7 @@
 					"\r\n",
 					"    return openai_output,generated_document"
 				],
-				"execution_count": 60
+				"execution_count": 72
 			},
 			{
 				"cell_type": "code",
@@ -251,7 +251,7 @@
 					"    document_name = f'{i}_{total_tokens}_{completion_tokens}_{random_sentiment}_{random_topic}_{random_product}_document.txt'\r\n",
 					"    return document_name"
 				],
-				"execution_count": 61
+				"execution_count": 73
 			},
 			{
 				"cell_type": "code",
@@ -272,7 +272,7 @@
 					"topics_list = ['churn', 'upgrade services', 'downgrade services', 'assistance', 'support', 'information', 'billing', 'payment', 'account', 'service', 'other']\r\n",
 					"products_list = ['phone', 'internet', 'tv', 'streaming', 'other']"
 				],
-				"execution_count": 62
+				"execution_count": 74
 			},
 			{
 				"cell_type": "code",
@@ -306,7 +306,7 @@
 					"    mssparkutils.fs.put(f'wasbs://{BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/generated_documents/'+document_name, generated_document, True)\r\n",
 					"    time.sleep(.50)"
 				],
-				"execution_count": 63
+				"execution_count": 75
 			}
 		]
 	}
