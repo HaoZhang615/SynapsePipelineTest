@@ -18,7 +18,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "e8063824-f68a-458b-9f84-221cdf84a211"
+				"spark.autotune.trackingId": "75e3e6e8-a5a0-4106-bcdb-7a6bdc228f4e"
 			}
 		},
 		"metadata": {
@@ -69,7 +69,7 @@
 					"import time\r\n",
 					"from pyspark.sql import SparkSession"
 				],
-				"execution_count": 21
+				"execution_count": 122
 			},
 			{
 				"cell_type": "code",
@@ -89,15 +89,15 @@
 				},
 				"source": [
 					"# Parameters to be referenced by synapse pipeline\r\n",
-					"AOAI_API_BASE = 'asdfasdfasfd'\r\n",
-					"AOAI_API_KEY = 'asdfasdfasdf'\r\n",
+					"AOAI_API_BASE = 'https://aoai-hz.openai.azure.com/'\r\n",
+					"AOAI_API_KEY = 'c48fe2c2d53a40b18167704bc7654d93'\r\n",
 					"AOAI_MODEL_NAME = 'davinci2'\r\n",
 					"#FILENAME = '1_331_243_disappointed_upgrade services_streaming_document.txt'\r\n",
 					"BLOB_ACCOUNT_NAME = \"hva77eiv36iwuazfunctions\"\r\n",
 					"BLOB_CONTAINER_NAME = \"workshop-data\"\r\n",
 					"FILE_AMOUNT = 5"
 				],
-				"execution_count": 22
+				"execution_count": 123
 			},
 			{
 				"cell_type": "code",
@@ -121,7 +121,7 @@
 					"presence_penalty= 0.2\r\n",
 					"stop= None"
 				],
-				"execution_count": 23
+				"execution_count": 124
 			},
 			{
 				"cell_type": "code",
@@ -145,7 +145,7 @@
 					"blob_account_name = BLOB_ACCOUNT_NAME\r\n",
 					"blob_container_name = BLOB_CONTAINER_NAME"
 				],
-				"execution_count": 24
+				"execution_count": 125
 			},
 			{
 				"cell_type": "code",
@@ -170,7 +170,7 @@
 					"    'fs.azure.sas.%s.%s.blob.core.windows.net' % (blob_container_name, blob_account_name),\r\n",
 					"    blob_sas_token)"
 				],
-				"execution_count": 25
+				"execution_count": 126
 			},
 			{
 				"cell_type": "code",
@@ -187,16 +187,18 @@
 				},
 				"source": [
 					"# function: generate random combination of sentiment, topic and product for AOAI to synthesize converstation content.\r\n",
-					"def randomized_prompt_elements(sentiments_list, topics_list, products_list):\r\n",
+					"def randomized_prompt_elements(sentiments_list, topics_list, products_list, agend_list, customer_list):\r\n",
 					"    # Randomly draw an element from the supplied lists for the sentiment, topic, and product \r\n",
 					"    random_sentiment = random.choice(sentiments_list)\r\n",
 					"    random_topic = random.choice(topics_list)\r\n",
 					"    random_product = random.choice(products_list)\r\n",
+					"    random_agent =random.choice(agend_list)\r\n",
+					"    random_customer = random.choice(customer_list)\r\n",
 					"    \r\n",
 					"    # Return the randomized element string \r\n",
-					"    return random_sentiment, random_topic, random_product"
+					"    return random_sentiment, random_topic, random_product, random_agent, random_customer"
 				],
-				"execution_count": 26
+				"execution_count": 127
 			},
 			{
 				"cell_type": "code",
@@ -229,7 +231,7 @@
 					"\r\n",
 					"    return openai_output,generated_document"
 				],
-				"execution_count": 27
+				"execution_count": 128
 			},
 			{
 				"cell_type": "code",
@@ -251,7 +253,7 @@
 					"    document_name = f'{i}_{total_tokens}_{completion_tokens}_{random_sentiment}_{random_topic}_{random_product}_document.txt'\r\n",
 					"    return document_name"
 				],
-				"execution_count": 28
+				"execution_count": 129
 			},
 			{
 				"cell_type": "code",
@@ -270,9 +272,11 @@
 					"# declare the 3 lists with allowed values\r\n",
 					"sentiments_list = ['positive', 'negative', 'neutral', 'mixed', 'content', 'upset', 'angry', 'frustrated', 'happy', 'disappointed', 'confused']\r\n",
 					"topics_list = ['churn', 'upgrade services', 'downgrade services', 'assistance', 'support', 'information', 'billing', 'payment', 'account', 'service', 'other']\r\n",
-					"products_list = ['phone', 'internet', 'tv', 'streaming', 'other']"
+					"products_list = ['phone', 'internet', 'tv', 'streaming', 'other']\r\n",
+					"agent_list = ['adam','betrace','curie','davinci','emil']\r\n",
+					"customer_list = ['arun','domingo','shiva','saty','april','yancho']"
 				],
-				"execution_count": 29
+				"execution_count": 130
 			},
 			{
 				"cell_type": "code",
@@ -290,10 +294,11 @@
 				"source": [
 					"for i in range(FILE_AMOUNT):# the range number decides how many files/synthetic conversations should be generated in a randomized manner. \r\n",
 					"    # parameterized prompt generation\r\n",
-					"    random_sentiment, random_topic, random_product = randomized_prompt_elements(sentiments_list, topics_list, products_list)\r\n",
+					"    random_sentiment, random_topic, random_product, random_agent, random_customer = randomized_prompt_elements(sentiments_list, topics_list, products_list, agent_list, customer_list)\r\n",
 					"    document_creation_prompt = f'CREATE a document representing an exchange between a customer service \\\r\n",
 					"    agent for the fictitious company Contoso Wireless and their customer. The sentiment of the customer must be {random_sentiment} and \\\r\n",
-					"    the topic of the conversation betweem the agent and customer should center around {random_topic}. The customer must be asking about the product {random_product}. The document should have at least \\\r\n",
+					"    the topic of the conversation betweem the agent and customer should center around {random_topic}. The customer must be asking about the product {random_product}.\\\r\n",
+					"    The agent handling this conversation is named {random_agent}. The name of the customer is {random_customer}. At the beginning of the converstion, the agent thanks the customer for calling, tells the customer his/her name and asks what the name of the customer is.The document should have at least \\\r\n",
 					"    8 back and forth exchanges between the customer and the agent and the length MUST NOT EXCEED 1000 words.'\r\n",
 					"\r\n",
 					"    openai_output, generated_document = create_document(AOAI_MODEL_NAME, document_creation_prompt, temperature, max_tokens, top_p,\\\r\n",
@@ -306,7 +311,7 @@
 					"    mssparkutils.fs.put(f'wasbs://{BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/generated_documents/'+document_name, generated_document, True)\r\n",
 					"    time.sleep(.50)"
 				],
-				"execution_count": 30
+				"execution_count": 131
 			}
 		]
 	}
