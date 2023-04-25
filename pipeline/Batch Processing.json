@@ -1,5 +1,5 @@
 {
-	"name": "Batch Processing_copy1",
+	"name": "Batch Processing",
 	"properties": {
 		"activities": [
 			{
@@ -123,7 +123,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataset": {
-						"referenceName": "Folder_copy1",
+						"referenceName": "Folder",
 						"type": "DatasetReference",
 						"parameters": {
 							"container": {

@@ -1,5 +1,5 @@
 {
-	"name": "Folder_copy1",
+	"name": "Folder",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "aoaiworkshopblob",
