@@ -37,30 +37,6 @@
 			"type": "string",
 			"defaultValue": "https://aoaiworkshopadls.dfs.core.windows.net"
 		},
-		"Blob Trigger_properties_Batch Processing_parameters_StorageAccountName": {
-			"type": "string",
-			"defaultValue": "hva77eiv36iwuazfunctions"
-		},
-		"Blob Trigger_properties_Batch Processing_parameters_SourceContainerName": {
-			"type": "string",
-			"defaultValue": "workshop-data"
-		},
-		"Blob Trigger_properties_Batch Processing_parameters_ArchiveContainerName": {
-			"type": "string",
-			"defaultValue": "archieve-data"
-		},
-		"Blob Trigger_properties_Batch Processing_parameters_TxtFolderName": {
-			"type": "string",
-			"defaultValue": "generated_documents"
-		},
-		"Blob Trigger_properties_Batch Processing_parameters_JsonFolderName": {
-			"type": "string",
-			"defaultValue": "cleansed_documents"
-		},
-		"Blob Trigger_properties_Batch Processing_parameters_AoaiModelName": {
-			"type": "string",
-			"defaultValue": "text-davinci-001-demo-eus"
-		},
 		"Blob Trigger_properties_typeProperties_scope": {
 			"type": "string",
 			"defaultValue": "/subscriptions/317ae932-c9d6-433d-9c3e-998b5943f458/resourceGroups/openai_batch_pipeline_demo/providers/Microsoft.Storage/storageAccounts/hva77eiv36iwuazfunctions"
@@ -70,6 +46,15 @@
 		"workspaceId": "[concat('Microsoft.Synapse/workspaces/', parameters('workspaceName'))]"
 	},
 	"resources": [
+		{
+			"name": "[concat(parameters('workspaceName'), '/SparkPoolS')]",
+			"type": "Microsoft.Synapse/workspaces/bigDataPools",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": []
+			},
+			"dependsOn": []
+		},
 		{
 			"name": "[concat(parameters('workspaceName'), '/Batch Processing')]",
 			"type": "Microsoft.Synapse/workspaces/pipelines",
@@ -181,7 +166,7 @@
 						}
 					},
 					{
-						"name": "Delete all TXT from source container",
+						"name": "Delete everything from source container",
 						"type": "Delete",
 						"dependsOn": [
 							{
@@ -201,58 +186,11 @@
 						"userProperties": [],
 						"typeProperties": {
 							"dataset": {
-								"referenceName": "Folder",
+								"referenceName": "Folder_copy1",
 								"type": "DatasetReference",
 								"parameters": {
 									"container": {
 										"value": "@pipeline().parameters.SourceContainerName",
-										"type": "Expression"
-									},
-									"directory": {
-										"value": "@pipeline().parameters.TxtFolderName",
-										"type": "Expression"
-									}
-								}
-							},
-							"enableLogging": false,
-							"storeSettings": {
-								"type": "AzureBlobStorageReadSettings",
-								"recursive": true,
-								"wildcardFileName": "*",
-								"enablePartitionDiscovery": false
-							}
-						}
-					},
-					{
-						"name": "Delete all JSON from source container_copy1",
-						"type": "Delete",
-						"dependsOn": [
-							{
-								"activity": "Load JSON to SQL",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataset": {
-								"referenceName": "Folder",
-								"type": "DatasetReference",
-								"parameters": {
-									"container": {
-										"value": "@pipeline().parameters.SourceContainerName",
-										"type": "Expression"
-									},
-									"directory": {
-										"value": "@pipeline().parameters.JsonFolderName",
 										"type": "Expression"
 									}
 								}
@@ -390,7 +328,7 @@
 				"[concat(variables('workspaceId'), '/dataflows/Dataflow1')]",
 				"[concat(variables('workspaceId'), '/linkedServices/aoaiworkshopblob')]",
 				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]",
-				"[concat(variables('workspaceId'), '/datasets/Folder')]",
+				"[concat(variables('workspaceId'), '/datasets/Folder_copy1')]",
 				"[concat(variables('workspaceId'), '/notebooks/cleansed_generation')]",
 				"[concat(variables('workspaceId'), '/bigDataPools/SparkPoolS')]"
 			]
@@ -572,7 +510,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('workspaceName'), '/Folder')]",
+			"name": "[concat(parameters('workspaceName'), '/Folder_copy1')]",
 			"type": "Microsoft.Synapse/workspaces/datasets",
 			"apiVersion": "2019-06-01-preview",
 			"properties": {
@@ -595,7 +533,7 @@
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobStorageLocation",
-						"folderPath": {
+						"fileName": {
 							"value": "@dataset().directory",
 							"type": "Expression"
 						},
@@ -794,22 +732,7 @@
 			"properties": {
 				"annotations": [],
 				"runtimeState": "Stopped",
-				"pipelines": [
-					{
-						"pipelineReference": {
-							"referenceName": "Batch Processing",
-							"type": "PipelineReference"
-						},
-						"parameters": {
-							"StorageAccountName": "[parameters('Blob Trigger_properties_Batch Processing_parameters_StorageAccountName')]",
-							"SourceContainerName": "[parameters('Blob Trigger_properties_Batch Processing_parameters_SourceContainerName')]",
-							"ArchiveContainerName": "[parameters('Blob Trigger_properties_Batch Processing_parameters_ArchiveContainerName')]",
-							"TxtFolderName": "[parameters('Blob Trigger_properties_Batch Processing_parameters_TxtFolderName')]",
-							"JsonFolderName": "[parameters('Blob Trigger_properties_Batch Processing_parameters_JsonFolderName')]",
-							"AoaiModelName": "[parameters('Blob Trigger_properties_Batch Processing_parameters_AoaiModelName')]"
-						}
-					}
-				],
+				"pipelines": [],
 				"type": "BlobEventsTrigger",
 				"typeProperties": {
 					"blobPathBeginsWith": "/workshop-data/blobs/generated_documents/",
@@ -821,9 +744,7 @@
 					]
 				}
 			},
-			"dependsOn": [
-				"[concat(variables('workspaceId'), '/pipelines/Batch Processing')]"
-			]
+			"dependsOn": []
 		},
 		{
 			"name": "[concat(parameters('workspaceName'), '/AutoResolveIntegrationRuntime')]",
@@ -934,7 +855,7 @@
 			"apiVersion": "2019-06-01-preview",
 			"properties": {
 				"content": {
-					"query": "SELECT TOP (100) [interaction_summary]\n,[sentiment]\n,[topic]\n,[product]\n,[filename]\n FROM [dbo].[cs_detail]",
+					"query": "SELECT TOP (1000) [interaction_summary]\n,[sentiment]\n,[topic]\n,[product]\n,[filename]\n FROM [dbo].[cs_detail]",
 					"metadata": {
 						"language": "sql"
 					},
@@ -970,7 +891,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "6b3f9a2c-a7e8-4d5c-9777-432c639a0c4a"
+						"spark.autotune.trackingId": "081a05b9-1f9e-4cdc-a074-352e44a95c3d"
 					}
 				},
 				"metadata": {
@@ -995,8 +916,7 @@
 						"sparkVersion": "3.3",
 						"nodeCount": 10,
 						"cores": 8,
-						"memory": 56,
-						"automaticScaleJobs": false
+						"memory": 56
 					},
 					"sessionKeepAliveTimeout": 30
 				},
@@ -1022,7 +942,7 @@
 							"import time"
 						],
 						"outputs": [],
-						"execution_count": 2
+						"execution_count": 11
 					},
 					{
 						"cell_type": "code",
@@ -1050,7 +970,7 @@
 							"ARCHIEVE_BLOB_CONTAINER_NAME = \"archieve-data\""
 						],
 						"outputs": [],
-						"execution_count": 3
+						"execution_count": 12
 					},
 					{
 						"cell_type": "code",
@@ -1075,7 +995,7 @@
 							"stop= None"
 						],
 						"outputs": [],
-						"execution_count": 4
+						"execution_count": 13
 					},
 					{
 						"cell_type": "code",
@@ -1101,7 +1021,7 @@
 							"archieve_container_name = ARCHIEVE_BLOB_CONTAINER_NAME"
 						],
 						"outputs": [],
-						"execution_count": 5
+						"execution_count": 14
 					},
 					{
 						"cell_type": "code",
@@ -1132,7 +1052,7 @@
 							"    blob_sas_token)"
 						],
 						"outputs": [],
-						"execution_count": 6
+						"execution_count": 15
 					},
 					{
 						"cell_type": "code",
@@ -1152,7 +1072,7 @@
 							"files = mssparkutils.fs.ls(f'wasbs://{SOURCE_BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/generated_documents/')"
 						],
 						"outputs": [],
-						"execution_count": 7
+						"execution_count": 17
 					},
 					{
 						"cell_type": "code",
@@ -1174,7 +1094,7 @@
 							"prompt_requirement = '\\nTASK 1: provide a summary with max. 100 words.\\nTASK 2: detect customer sentiment of the conversation in one word and choose among positive, negative, neutral, mixed, content, upset, angry, frustrated, happy, disappointed and confused.\\nTASK 3: extract the topic of the converstation in one word and choose among churn, upgrade services, downgrade services, assistance, support, information, billing, payment, account, service, other.\\nTASK 4: extract the which product the converstation is about and choose among phone, internet, tv, streaming and other.\\nFINAL TASK: put the result of TASK 1 to TASK 4 into JSON file with following schema:\\n{\\n    \"summary\": \"result of TASK 1\",\\n    \"customerSentiment\": \"result of TASK 2\",\\n    \"topic\": \"result of TASK 3\",\\n    \"product\": \"result of TASK 4\"\\n}\\n\\nFINAL TASK:\\n'"
 						],
 						"outputs": [],
-						"execution_count": 8
+						"execution_count": null
 					},
 					{
 						"cell_type": "code",
@@ -1208,7 +1128,7 @@
 							"    return generated_document"
 						],
 						"outputs": [],
-						"execution_count": 9
+						"execution_count": null
 					},
 					{
 						"cell_type": "code",
@@ -1253,7 +1173,7 @@
 							"    time.sleep(.50)"
 						],
 						"outputs": [],
-						"execution_count": 10
+						"execution_count": null
 					}
 				]
 			},
@@ -1281,7 +1201,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "5aa52a56-b638-401d-901d-b1d794b622ec"
+						"spark.autotune.trackingId": "880641a3-2a07-45dc-a5f2-0e941dfef3bc"
 					}
 				},
 				"metadata": {
@@ -1306,8 +1226,7 @@
 						"sparkVersion": "3.3",
 						"nodeCount": 10,
 						"cores": 8,
-						"memory": 56,
-						"automaticScaleJobs": false
+						"memory": 56
 					},
 					"sessionKeepAliveTimeout": 30
 				},
@@ -1333,7 +1252,7 @@
 							"from pyspark.sql import SparkSession"
 						],
 						"outputs": [],
-						"execution_count": 54
+						"execution_count": 66
 					},
 					{
 						"cell_type": "code",
@@ -1362,7 +1281,7 @@
 							"FILE_AMOUNT = 2"
 						],
 						"outputs": [],
-						"execution_count": 55
+						"execution_count": 67
 					},
 					{
 						"cell_type": "code",
@@ -1387,7 +1306,7 @@
 							"stop= None"
 						],
 						"outputs": [],
-						"execution_count": 56
+						"execution_count": 68
 					},
 					{
 						"cell_type": "code",
@@ -1412,7 +1331,7 @@
 							"blob_container_name = BLOB_CONTAINER_NAME"
 						],
 						"outputs": [],
-						"execution_count": 57
+						"execution_count": 69
 					},
 					{
 						"cell_type": "code",
@@ -1438,7 +1357,7 @@
 							"    blob_sas_token)"
 						],
 						"outputs": [],
-						"execution_count": 58
+						"execution_count": 70
 					},
 					{
 						"cell_type": "code",
@@ -1465,7 +1384,7 @@
 							"    return random_sentiment, random_topic, random_product"
 						],
 						"outputs": [],
-						"execution_count": 59
+						"execution_count": 71
 					},
 					{
 						"cell_type": "code",
@@ -1499,7 +1418,7 @@
 							"    return openai_output,generated_document"
 						],
 						"outputs": [],
-						"execution_count": 60
+						"execution_count": 72
 					},
 					{
 						"cell_type": "code",
@@ -1522,7 +1441,7 @@
 							"    return document_name"
 						],
 						"outputs": [],
-						"execution_count": 61
+						"execution_count": 73
 					},
 					{
 						"cell_type": "code",
@@ -1544,7 +1463,7 @@
 							"products_list = ['phone', 'internet', 'tv', 'streaming', 'other']"
 						],
 						"outputs": [],
-						"execution_count": 62
+						"execution_count": 74
 					},
 					{
 						"cell_type": "code",
@@ -1579,7 +1498,7 @@
 							"    time.sleep(.50)"
 						],
 						"outputs": [],
-						"execution_count": 63
+						"execution_count": 75
 					}
 				]
 			},
