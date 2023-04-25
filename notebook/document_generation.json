@@ -18,7 +18,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "880641a3-2a07-45dc-a5f2-0e941dfef3bc"
+				"spark.autotune.trackingId": "8c0d3545-b3fe-4ace-9ec6-abfd1a842534"
 			}
 		},
 		"metadata": {
@@ -95,7 +95,7 @@
 					"#FILENAME = '1_331_243_disappointed_upgrade services_streaming_document.txt'\r\n",
 					"BLOB_ACCOUNT_NAME = \"hva77eiv36iwuazfunctions\"\r\n",
 					"BLOB_CONTAINER_NAME = \"workshop-data\"\r\n",
-					"FILE_AMOUNT = 2"
+					"FILE_AMOUNT = 50"
 				],
 				"execution_count": 67
 			},
