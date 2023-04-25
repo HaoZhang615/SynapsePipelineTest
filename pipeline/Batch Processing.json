@@ -129,7 +129,8 @@
 							"container": {
 								"value": "@pipeline().parameters.SourceContainerName",
 								"type": "Expression"
-							}
+							},
+							"directory": "generated_documents"
 						}
 					},
 					"enableLogging": false,
