@@ -18,7 +18,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "d12f4231-309f-4d69-8230-013b3de86a15"
+				"spark.autotune.trackingId": "416915f5-5d6e-4369-a713-e3d231c58704"
 			}
 		},
 		"metadata": {
@@ -89,8 +89,8 @@
 				},
 				"source": [
 					"# Parameters to be referenced by synapse pipeline\r\n",
-					"AOAI_API_BASE = 'https://aoai-hz.openai.azure.com/'\r\n",
-					"AOAI_API_KEY = 'c48fe2c2d53a40b18167704bc7654d93'\r\n",
+					"AOAI_API_BASE = 'asdfasdfasdf'\r\n",
+					"AOAI_API_KEY = 'asdfasdfasdf'\r\n",
 					"AOAI_MODEL_NAME = 'davinci2'\r\n",
 					"BLOB_ACCOUNT_NAME = \"hva77eiv36iwuazfunctions\"\r\n",
 					"SOURCE_BLOB_CONTAINER_NAME = \"workshop-data\"\r\n",

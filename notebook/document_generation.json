@@ -18,7 +18,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "128a3b8e-1dff-4276-a205-8d10adc2cbb2"
+				"spark.autotune.trackingId": "e8063824-f68a-458b-9f84-221cdf84a211"
 			}
 		},
 		"metadata": {
@@ -89,8 +89,8 @@
 				},
 				"source": [
 					"# Parameters to be referenced by synapse pipeline\r\n",
-					"AOAI_API_BASE = 'https://aoai-hz.openai.azure.com/'\r\n",
-					"AOAI_API_KEY = 'c48fe2c2d53a40b18167704bc7654d93'\r\n",
+					"AOAI_API_BASE = 'asdfasdfasfd'\r\n",
+					"AOAI_API_KEY = 'asdfasdfasdf'\r\n",
 					"AOAI_MODEL_NAME = 'davinci2'\r\n",
 					"#FILENAME = '1_331_243_disappointed_upgrade services_streaming_document.txt'\r\n",
 					"BLOB_ACCOUNT_NAME = \"hva77eiv36iwuazfunctions\"\r\n",
