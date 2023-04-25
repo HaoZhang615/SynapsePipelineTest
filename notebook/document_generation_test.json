@@ -1,5 +1,5 @@
 {
-	"name": "document_generation",
+	"name": "document_generation_test",
 	"properties": {
 		"nbformat": 4,
 		"nbformat_minor": 2,
@@ -8,17 +8,16 @@
 			"type": "BigDataPoolReference"
 		},
 		"sessionProperties": {
-			"driverMemory": "28g",
-			"driverCores": 4,
-			"executorMemory": "28g",
-			"executorCores": 4,
+			"driverMemory": "56g",
+			"driverCores": 8,
+			"executorMemory": "56g",
+			"executorCores": 8,
 			"numExecutors": 2,
-			"runAsWorkspaceSystemIdentity": false,
 			"conf": {
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "a8360616-ae8e-4022-a887-51b6eaa110e9"
+				"spark.autotune.trackingId": "542dbb06-9813-4326-bfd1-7ab16673096d"
 			}
 		},
 		"metadata": {
@@ -69,7 +68,7 @@
 					"import time\r\n",
 					"from pyspark.sql import SparkSession"
 				],
-				"execution_count": 122
+				"execution_count": 17
 			},
 			{
 				"cell_type": "code",
@@ -89,15 +88,15 @@
 				},
 				"source": [
 					"# Parameters to be referenced by synapse pipeline\r\n",
-					"AOAI_API_BASE = 'asdfasdfasdf'\r\n",
-					"AOAI_API_KEY = 'asdfasdfasdf'\r\n",
-					"AOAI_MODEL_NAME = 'davinci2'\r\n",
+					"AOAI_API_BASE = 'https://aoai-hz.openai.azure.com/'\r\n",
+					"AOAI_API_KEY = 'c48fe2c2d53a40b18167704bc7654d93'\r\n",
+					"AOAI_MODEL_NAME = 'davinci3'\r\n",
 					"#FILENAME = '1_331_243_disappointed_upgrade services_streaming_document.txt'\r\n",
 					"BLOB_ACCOUNT_NAME = \"hva77eiv36iwuazfunctions\"\r\n",
 					"BLOB_CONTAINER_NAME = \"workshop-data\"\r\n",
-					"FILE_AMOUNT = 5"
+					"FILE_AMOUNT = 100"
 				],
-				"execution_count": 123
+				"execution_count": 18
 			},
 			{
 				"cell_type": "code",
@@ -121,7 +120,7 @@
 					"presence_penalty= 0.2\r\n",
 					"stop= None"
 				],
-				"execution_count": 124
+				"execution_count": 19
 			},
 			{
 				"cell_type": "code",
@@ -145,7 +144,7 @@
 					"blob_account_name = BLOB_ACCOUNT_NAME\r\n",
 					"blob_container_name = BLOB_CONTAINER_NAME"
 				],
-				"execution_count": 125
+				"execution_count": 20
 			},
 			{
 				"cell_type": "code",
@@ -170,7 +169,7 @@
 					"    'fs.azure.sas.%s.%s.blob.core.windows.net' % (blob_container_name, blob_account_name),\r\n",
 					"    blob_sas_token)"
 				],
-				"execution_count": 126
+				"execution_count": 21
 			},
 			{
 				"cell_type": "code",
@@ -198,7 +197,7 @@
 					"    # Return the randomized element string \r\n",
 					"    return random_sentiment, random_topic, random_product, random_agent, random_customer"
 				],
-				"execution_count": 127
+				"execution_count": 22
 			},
 			{
 				"cell_type": "code",
@@ -231,7 +230,7 @@
 					"\r\n",
 					"    return openai_output,generated_document"
 				],
-				"execution_count": 128
+				"execution_count": 23
 			},
 			{
 				"cell_type": "code",
@@ -253,7 +252,7 @@
 					"    document_name = f'{i}_{total_tokens}_{completion_tokens}_{random_sentiment}_{random_topic}_{random_product}_document.txt'\r\n",
 					"    return document_name"
 				],
-				"execution_count": 129
+				"execution_count": 24
 			},
 			{
 				"cell_type": "code",
@@ -276,7 +275,7 @@
 					"agent_list = ['adam','betrace','curie','davinci','emil']\r\n",
 					"customer_list = ['arun','domingo','shiva','saty','april','yancho']"
 				],
-				"execution_count": 130
+				"execution_count": 25
 			},
 			{
 				"cell_type": "code",
@@ -311,7 +310,7 @@
 					"    mssparkutils.fs.put(f'wasbs://{BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/generated_documents/'+document_name, generated_document, True)\r\n",
 					"    time.sleep(.50)"
 				],
-				"execution_count": 131
+				"execution_count": 26
 			}
 		]
 	}

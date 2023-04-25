@@ -1,0 +1,48 @@
+{
+	"name": "Pipeline 1",
+	"properties": {
+		"activities": [
+			{
+				"name": "Data flow1",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "Dataflow1",
+						"type": "DataFlowReference",
+						"datasetParameters": {
+							"source1": {
+								"container": "workshop-data",
+								"directory": "cleansed_documents"
+							}
+						}
+					},
+					"staging": {
+						"linkedService": {
+							"referenceName": "aoaiworkshopblob",
+							"type": "LinkedServiceReference"
+						},
+						"folderPath": "workshop-data/staging"
+					},
+					"compute": {
+						"coreCount": 32,
+						"computeType": "MemoryOptimized"
+					},
+					"traceLevel": "None",
+					"cacheSinks": {
+						"firstRowOnly": true
+					}
+				}
+			}
+		],
+		"annotations": []
+	}
+}

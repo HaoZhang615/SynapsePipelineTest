@@ -18,7 +18,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "6b733dd6-7146-47d2-b663-80351ad94f24"
+				"spark.autotune.trackingId": "4da1b59f-5453-4908-908f-fea118a7c013"
 			}
 		},
 		"metadata": {
@@ -69,7 +69,7 @@
 					"from datetime import date\r\n",
 					"import time"
 				],
-				"execution_count": 1
+				"execution_count": 2
 			},
 			{
 				"cell_type": "code",
@@ -89,14 +89,14 @@
 				},
 				"source": [
 					"# Parameters to be referenced by synapse pipeline\r\n",
-					"AOAI_API_BASE = 'asdfasdfasdf'\r\n",
-					"AOAI_API_KEY = 'asdfasdfasdf'\r\n",
-					"AOAI_MODEL_NAME = 'davinci2'\r\n",
+					"AOAI_API_BASE = 'https://aoai-hz.openai.azure.com/'\r\n",
+					"AOAI_API_KEY = 'c48fe2c2d53a40b18167704bc7654d93'\r\n",
+					"AOAI_MODEL_NAME = 'davinci3'\r\n",
 					"BLOB_ACCOUNT_NAME = \"hva77eiv36iwuazfunctions\"\r\n",
 					"SOURCE_BLOB_CONTAINER_NAME = \"workshop-data\"\r\n",
 					"ARCHIEVE_BLOB_CONTAINER_NAME = \"archieve-data\""
 				],
-				"execution_count": 12
+				"execution_count": 3
 			},
 			{
 				"cell_type": "code",
@@ -114,13 +114,13 @@
 				"source": [
 					"# Azure OpenAI API parameter setting - static for now, can be parameterized as well, if it make sense to do so.\r\n",
 					"temperature= 0.0\r\n",
-					"max_tokens= 2000\r\n",
+					"max_tokens= 3000\r\n",
 					"top_p= 0.50\r\n",
 					"frequency_penalty= 0.2\r\n",
 					"presence_penalty= 0.2\r\n",
 					"stop= None"
 				],
-				"execution_count": 13
+				"execution_count": 4
 			},
 			{
 				"cell_type": "code",
@@ -145,7 +145,7 @@
 					"source_container_name = SOURCE_BLOB_CONTAINER_NAME\r\n",
 					"archieve_container_name = ARCHIEVE_BLOB_CONTAINER_NAME"
 				],
-				"execution_count": 14
+				"execution_count": 5
 			},
 			{
 				"cell_type": "code",
@@ -175,7 +175,7 @@
 					"    'fs.azure.sas.%s.%s.blob.core.windows.net' % (archieve_container_name, blob_account_name),\r\n",
 					"    blob_sas_token)"
 				],
-				"execution_count": 15
+				"execution_count": 6
 			},
 			{
 				"cell_type": "code",
@@ -194,7 +194,7 @@
 					"# list variable of all the file names\r\n",
 					"files = mssparkutils.fs.ls(f'wasbs://{SOURCE_BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/generated_documents/')"
 				],
-				"execution_count": 17
+				"execution_count": 7
 			},
 			{
 				"cell_type": "code",
@@ -213,9 +213,9 @@
 					"# define a current date for later copy activity\r\n",
 					"Current_Date = str(date.today())\r\n",
 					"# convert the necessary extra command from prompt engineering in AOAI playground to a string.\r\n",
-					"prompt_requirement = '\\nTASK 1: provide a summary with max. 100 words.\\nTASK 2: detect customer sentiment of the conversation in one word and choose among positive, negative, neutral, mixed, content, upset, angry, frustrated, happy, disappointed and confused.\\nTASK 3: extract the topic of the converstation in one word and choose among churn, upgrade services, downgrade services, assistance, support, information, billing, payment, account, service, other.\\nTASK 4: extract the which product the converstation is about and choose among phone, internet, tv, streaming and other.\\nFINAL TASK: put the result of TASK 1 to TASK 4 into JSON file with following schema:\\n{\\n    \"summary\": \"result of TASK 1\",\\n    \"customerSentiment\": \"result of TASK 2\",\\n    \"topic\": \"result of TASK 3\",\\n    \"product\": \"result of TASK 4\"\\n}\\n\\nFINAL TASK:\\n'"
+					"prompt_requirement = '\\nTASK 1: provide a summary with max. 100 words.\\nTASK 2: detect customer sentiment of the conversation in one word and choose among positive, negative, neutral, mixed, content, upset, angry, frustrated, happy, disappointed and confused.\\nTASK 3: extract the topic of the converstation in one word and choose among churn, upgrade services, downgrade services, assistance, support, information, billing, payment, account, service, other.\\nTASK 4: extract the which product the converstation is about and choose among phone, internet, tv, streaming and other.\\nTASK 5: extract the name of the agent. \\nTASK 6: extract the name of the customer. \\nFINAL TASK: put the result of TASK 1 to TASK 6 into JSON file with following schema:\\n{\\n    \"summary\": \"result of TASK 1\",\\n    \"customerSentiment\": \"result of TASK 2\",\\n    \"topic\": \"result of TASK 3\",\\n    \"product\": \"result of TASK 4\",\\n    \"agentName\": \"result of TASK 5\",\\n    \"customerName\": \"result of TASK 6\"\\n}\\n\\nFINAL TASK:\\n'"
 				],
-				"execution_count": null
+				"execution_count": 8
 			},
 			{
 				"cell_type": "code",
@@ -248,7 +248,7 @@
 					"\r\n",
 					"    return generated_document"
 				],
-				"execution_count": null
+				"execution_count": 9
 			},
 			{
 				"cell_type": "code",
@@ -292,7 +292,7 @@
 					"        mssparkutils.fs.cp(f\"wasbs://{SOURCE_BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/{file_path}\", f'wasbs://{SOURCE_BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/file_with_error/{file.name}', True)\r\n",
 					"    time.sleep(.50)"
 				],
-				"execution_count": null
+				"execution_count": 10
 			}
 		]
 	}
