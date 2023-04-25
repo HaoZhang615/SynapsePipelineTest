@@ -1,5 +1,5 @@
 {
-	"name": "SQL script 1",
+	"name": "selectTop100",
 	"properties": {
 		"content": {
 			"query": "SELECT TOP (100) [interaction_summary]\n,[sentiment]\n,[topic]\n,[product]\n,[filename]\n FROM [dbo].[cs_detail]",
