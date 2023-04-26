@@ -1,10 +1,10 @@
 {
-	"name": "document_generation_test",
+	"name": "document_generation_NestleCustomized",
 	"properties": {
 		"nbformat": 4,
 		"nbformat_minor": 2,
 		"bigDataPool": {
-			"referenceName": "SparkPoolS",
+			"referenceName": "SparkPoolM",
 			"type": "BigDataPoolReference"
 		},
 		"sessionProperties": {
@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "542dbb06-9813-4326-bfd1-7ab16673096d"
+				"spark.autotune.trackingId": "a8d923bd-4172-47e8-a918-6ee443892e13"
 			}
 		},
 		"metadata": {
@@ -31,10 +31,10 @@
 				"name": "python"
 			},
 			"a365ComputeOptions": {
-				"id": "/subscriptions/317ae932-c9d6-433d-9c3e-998b5943f458/resourceGroups/openai_batch_pipeline_demo/providers/Microsoft.Synapse/workspaces/azureopenaiworkshop-synapse/bigDataPools/SparkPoolS",
-				"name": "SparkPoolS",
+				"id": "/subscriptions/317ae932-c9d6-433d-9c3e-998b5943f458/resourceGroups/openai_batch_pipeline_demo/providers/Microsoft.Synapse/workspaces/azureopenaiworkshop-synapse/bigDataPools/SparkPoolM",
+				"name": "SparkPoolM",
 				"type": "Spark",
-				"endpoint": "https://azureopenaiworkshop-synapse.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/SparkPoolS",
+				"endpoint": "https://azureopenaiworkshop-synapse.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/SparkPoolM",
 				"auth": {
 					"type": "AAD",
 					"authResource": "https://dev.azuresynapse.net"
@@ -68,7 +68,7 @@
 					"import time\r\n",
 					"from pyspark.sql import SparkSession"
 				],
-				"execution_count": 17
+				"execution_count": 92
 			},
 			{
 				"cell_type": "code",
@@ -96,7 +96,7 @@
 					"BLOB_CONTAINER_NAME = \"workshop-data\"\r\n",
 					"FILE_AMOUNT = 100"
 				],
-				"execution_count": 18
+				"execution_count": 93
 			},
 			{
 				"cell_type": "code",
@@ -120,7 +120,7 @@
 					"presence_penalty= 0.2\r\n",
 					"stop= None"
 				],
-				"execution_count": 19
+				"execution_count": 94
 			},
 			{
 				"cell_type": "code",
@@ -144,7 +144,7 @@
 					"blob_account_name = BLOB_ACCOUNT_NAME\r\n",
 					"blob_container_name = BLOB_CONTAINER_NAME"
 				],
-				"execution_count": 20
+				"execution_count": 95
 			},
 			{
 				"cell_type": "code",
@@ -169,7 +169,7 @@
 					"    'fs.azure.sas.%s.%s.blob.core.windows.net' % (blob_container_name, blob_account_name),\r\n",
 					"    blob_sas_token)"
 				],
-				"execution_count": 21
+				"execution_count": 96
 			},
 			{
 				"cell_type": "code",
@@ -197,7 +197,7 @@
 					"    # Return the randomized element string \r\n",
 					"    return random_sentiment, random_topic, random_product, random_agent, random_customer"
 				],
-				"execution_count": 22
+				"execution_count": 97
 			},
 			{
 				"cell_type": "code",
@@ -230,7 +230,7 @@
 					"\r\n",
 					"    return openai_output,generated_document"
 				],
-				"execution_count": 23
+				"execution_count": 98
 			},
 			{
 				"cell_type": "code",
@@ -252,7 +252,7 @@
 					"    document_name = f'{i}_{total_tokens}_{completion_tokens}_{random_sentiment}_{random_topic}_{random_product}_document.txt'\r\n",
 					"    return document_name"
 				],
-				"execution_count": 24
+				"execution_count": 99
 			},
 			{
 				"cell_type": "code",
@@ -270,12 +270,12 @@
 				"source": [
 					"# declare the 3 lists with allowed values\r\n",
 					"sentiments_list = ['positive', 'negative', 'neutral', 'mixed', 'content', 'upset', 'angry', 'frustrated', 'happy', 'disappointed', 'confused']\r\n",
-					"topics_list = ['churn', 'upgrade services', 'downgrade services', 'assistance', 'support', 'information', 'billing', 'payment', 'account', 'service', 'other']\r\n",
-					"products_list = ['phone', 'internet', 'tv', 'streaming', 'other']\r\n",
+					"topics_list = ['churn', 'assistance', 'support', 'information', 'billing', 'payment', 'account', 'service', 'delivery', 'damages', 'Quality', 'brand image', 'Nutrition information', 'Health Issues', 'Sustainability']\r\n",
+					"products_list = ['Starbucks Verona', 'Pizza', 'Vital Proteins', 'Purina Pro Plan', 'Essentia water', 'Gerber Goodstart gentle pro']\r\n",
 					"agent_list = ['adam','betrace','curie','davinci','emil']\r\n",
 					"customer_list = ['arun','domingo','shiva','saty','april','yancho']"
 				],
-				"execution_count": 25
+				"execution_count": 100
 			},
 			{
 				"cell_type": "code",
@@ -310,7 +310,7 @@
 					"    mssparkutils.fs.put(f'wasbs://{BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/generated_documents/'+document_name, generated_document, True)\r\n",
 					"    time.sleep(.50)"
 				],
-				"execution_count": 26
+				"execution_count": 101
 			}
 		]
 	}
