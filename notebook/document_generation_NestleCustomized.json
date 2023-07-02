@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "a8d923bd-4172-47e8-a918-6ee443892e13"
+				"spark.autotune.trackingId": "9f6a921b-4247-4221-903e-ca95ffbc3dc0"
 			}
 		},
 		"metadata": {
@@ -68,7 +68,7 @@
 					"import time\r\n",
 					"from pyspark.sql import SparkSession"
 				],
-				"execution_count": 92
+				"execution_count": 1
 			},
 			{
 				"cell_type": "code",
@@ -89,14 +89,14 @@
 				"source": [
 					"# Parameters to be referenced by synapse pipeline\r\n",
 					"AOAI_API_BASE = 'https://aoai-hz.openai.azure.com/'\r\n",
-					"AOAI_API_KEY = 'c48fe2c2d53a40b18167704bc7654d93'\r\n",
-					"AOAI_MODEL_NAME = 'davinci3'\r\n",
+					"AOAI_API_KEY = 'f435027aeb1e448bb061b98bdd14546e'\r\n",
+					"AOAI_MODEL_NAME = 'text-davinci-001'\r\n",
 					"#FILENAME = '1_331_243_disappointed_upgrade services_streaming_document.txt'\r\n",
 					"BLOB_ACCOUNT_NAME = \"hva77eiv36iwuazfunctions\"\r\n",
 					"BLOB_CONTAINER_NAME = \"workshop-data\"\r\n",
-					"FILE_AMOUNT = 100"
+					"FILE_AMOUNT = 2"
 				],
-				"execution_count": 93
+				"execution_count": 2
 			},
 			{
 				"cell_type": "code",
@@ -120,7 +120,7 @@
 					"presence_penalty= 0.2\r\n",
 					"stop= None"
 				],
-				"execution_count": 94
+				"execution_count": 3
 			},
 			{
 				"cell_type": "code",
@@ -144,7 +144,7 @@
 					"blob_account_name = BLOB_ACCOUNT_NAME\r\n",
 					"blob_container_name = BLOB_CONTAINER_NAME"
 				],
-				"execution_count": 95
+				"execution_count": 4
 			},
 			{
 				"cell_type": "code",
@@ -169,7 +169,7 @@
 					"    'fs.azure.sas.%s.%s.blob.core.windows.net' % (blob_container_name, blob_account_name),\r\n",
 					"    blob_sas_token)"
 				],
-				"execution_count": 96
+				"execution_count": 5
 			},
 			{
 				"cell_type": "code",
@@ -197,7 +197,7 @@
 					"    # Return the randomized element string \r\n",
 					"    return random_sentiment, random_topic, random_product, random_agent, random_customer"
 				],
-				"execution_count": 97
+				"execution_count": 6
 			},
 			{
 				"cell_type": "code",
@@ -230,7 +230,7 @@
 					"\r\n",
 					"    return openai_output,generated_document"
 				],
-				"execution_count": 98
+				"execution_count": 7
 			},
 			{
 				"cell_type": "code",
@@ -252,7 +252,7 @@
 					"    document_name = f'{i}_{total_tokens}_{completion_tokens}_{random_sentiment}_{random_topic}_{random_product}_document.txt'\r\n",
 					"    return document_name"
 				],
-				"execution_count": 99
+				"execution_count": 8
 			},
 			{
 				"cell_type": "code",
@@ -275,7 +275,7 @@
 					"agent_list = ['adam','betrace','curie','davinci','emil']\r\n",
 					"customer_list = ['arun','domingo','shiva','saty','april','yancho']"
 				],
-				"execution_count": 100
+				"execution_count": 9
 			},
 			{
 				"cell_type": "code",
@@ -310,7 +310,7 @@
 					"    mssparkutils.fs.put(f'wasbs://{BLOB_CONTAINER_NAME}@{BLOB_ACCOUNT_NAME}.blob.core.windows.net/generated_documents/'+document_name, generated_document, True)\r\n",
 					"    time.sleep(.50)"
 				],
-				"execution_count": 101
+				"execution_count": 10
 			}
 		]
 	}
